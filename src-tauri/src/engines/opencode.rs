@@ -2400,6 +2400,9 @@ async fn start_server(cwd: &str) -> Result<OpenCodeServer> {
         .arg(port.to_string())
         .current_dir(cwd)
         .env("OPENCODE_SERVER_PASSWORD", &password)
+        .env("HOME", std::env::var("HOME").unwrap_or_else(|_| {
+            std::env::var("USERPROFILE").unwrap_or_else(|_| "".to_string())
+        }))
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
