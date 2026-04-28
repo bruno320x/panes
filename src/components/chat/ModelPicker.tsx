@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { useEngineStore } from "../../stores/engineStore";
 import { getHarnessIcon } from "../shared/HarnessLogos";
+import { ipc } from "../../lib/ipc";
 import type { EngineHealth, EngineInfo, EngineModel } from "../../types";
 
 /* ── Props ── */
@@ -281,6 +282,18 @@ export function ModelPicker({
   const wasOpenRef = useRef(false);
   const [pos, setPos] = useState({ bottom: 0, left: 0 });
   const ensureEngineHealth = useEngineStore((state) => state.ensureHealth);
+  const [providerLoginLoading, setProviderLoginLoading] = useState(false);
+
+  const handleAddProvider = async () => {
+    setProviderLoginLoading(true);
+    try {
+      await ipc.openCodeProviderLogin();
+    } catch (error) {
+      console.error("Failed to add provider:", error);
+    } finally {
+      setProviderLoginLoading(false);
+    }
+  };
 
   // Sync active engine when selection changes externally
   useEffect(() => {
@@ -470,7 +483,18 @@ export function ModelPicker({
     return (
       <div className="mp-provider-tree">
         <div className="mp-provider-list">
-          <div className="mp-provider-list-heading">{t("modelPicker.providers")}</div>
+          <div className="mp-provider-list-heading">
+            <span>{t("modelPicker.providers")}</span>
+            <button
+              type="button"
+              className="mp-add-provider-btn"
+              onClick={handleAddProvider}
+              disabled={providerLoginLoading}
+              title={t("modelPicker.addProvider")}
+            >
+              <Plus size={12} />
+            </button>
+          </div>
           {openCodeProviderGroups.map((group) => {
             const isActive = group.providerId === provider?.providerId;
             const isSelected = group.providerId === selectedOpenCodeProviderId;

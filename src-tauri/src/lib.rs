@@ -277,6 +277,7 @@ pub fn run() {
             commands::engines::list_codex_apps,
             commands::engines::get_opencode_runtime_catalog,
             commands::engines::run_engine_check,
+            commands::engines::opencode_provider_login,
             commands::threads::list_threads,
             commands::threads::list_archived_threads,
             commands::threads::list_codex_remote_threads,

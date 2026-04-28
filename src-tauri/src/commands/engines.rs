@@ -159,3 +159,28 @@ fn truncate_output(value: &str, max_chars: usize) -> String {
 fn err_to_string(error: impl std::fmt::Display) -> String {
     error.to_string()
 }
+
+#[tauri::command]
+pub async fn opencode_provider_login(provider: Option<String>) -> Result<String, String> {
+    let mut command = Command::new("opencode");
+    process_utils::configure_tokio_command(&mut command);
+    command.arg("providers").arg("login");
+    if let Some(p) = provider {
+        command.arg("--provider").arg(p);
+    }
+    command.stdin(std::process::Stdio::null());
+
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("failed to execute opencode providers login: {}", e))?;
+
+    if output.status.success() {
+        Ok("Provider connected successfully".to_string())
+    } else {
+        Err(format!(
+            "failed to connect provider: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ))
+    }
+}

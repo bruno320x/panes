@@ -330,6 +330,8 @@ export const ipc = {
   prewarmEngine: (engineId: string) => invoke<void>("prewarm_engine", { engineId }),
   runEngineCheck: (engineId: string, command: string) =>
     invoke<EngineCheckResult>("run_engine_check", { engineId, command }),
+  openCodeProviderLogin: (provider?: string) =>
+    invoke<string>("opencode_provider_login", { provider }),
   listCodexSkills: (cwd: string) =>
     invoke<CodexSkill[]>("list_codex_skills", { cwd }),
   listCodexApps: () => invoke<CodexApp[]>("list_codex_apps"),
