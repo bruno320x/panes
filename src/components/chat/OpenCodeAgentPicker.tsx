@@ -46,18 +46,6 @@ function formatAgentLabel(name: string): string {
   return name;
 }
 
-function formatAgentTitle(agent: OpenCodeAgent | null): string {
-  if (!agent) {
-    return "OpenCode agent";
-  }
-  const label = formatAgentLabel(agent.name);
-  const modelLabel =
-    agent.modelProviderId && agent.modelId
-      ? ` using ${agent.modelProviderId}/${agent.modelId}`
-      : "";
-  return `OpenCode agent: ${label}${modelLabel}`;
-}
-
 export function OpenCodeAgentPicker({
   agents,
   selectedAgent,
@@ -111,7 +99,6 @@ export function OpenCodeAgentPicker({
   const label = selected
     ? formatAgentLabel(selected.name)
     : t("openCodeAgentPicker.selectAgent");
-  const activeAgentTitle = formatAgentTitle(selected);
 
   return (
     <div className="oc-agent-root">
@@ -121,11 +108,10 @@ export function OpenCodeAgentPicker({
         className={`oc-agent-trigger${open ? " oc-agent-trigger-open" : ""}`}
         onClick={() => !disabled && setOpen((value) => !value)}
         disabled={disabled}
-        title={activeAgentTitle}
-        aria-label={activeAgentTitle}
+        title={t("openCodeAgentPicker.title")}
       >
         <Bot size={12} />
-        <span className="oc-agent-trigger-label">{`OpenCode: ${label}`}</span>
+        <span className="oc-agent-trigger-label">{label}</span>
         <ChevronDown size={11} className="oc-agent-trigger-chevron" />
       </button>
       {open
