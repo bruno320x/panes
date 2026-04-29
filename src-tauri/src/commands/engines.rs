@@ -4,7 +4,7 @@ use std::{
     time::Instant,
 };
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use serde_json::{json, Value};
 use tauri::State;
 use tokio::process::Command;
@@ -204,7 +204,7 @@ pub async fn opencode_save_api_key_credential(
     Ok("Provider credential saved".to_string())
 }
 
-fn save_opencode_api_key_credential(provider_id: &str, api_key: &str) -> Result<()> {
+fn save_opencode_api_key_credential(provider_id: &str, api_key: &str) -> anyhow::Result<()> {
     if provider_id.is_empty() {
         anyhow::bail!("provider id is required");
     }
@@ -247,7 +247,7 @@ fn save_opencode_api_key_credential(provider_id: &str, api_key: &str) -> Result<
     Ok(())
 }
 
-fn opencode_auth_path() -> Result<PathBuf> {
+fn opencode_auth_path() -> anyhow::Result<PathBuf> {
     let data_dir = std::env::var_os("XDG_DATA_HOME")
         .map(PathBuf::from)
         .or_else(|| home_dir().map(|home| home.join(".local").join("share")))
