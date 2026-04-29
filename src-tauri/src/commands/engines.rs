@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::Context;
+use base64::{engine::general_purpose, Engine as _};
 use serde_json::{json, Value};
 use tauri::State;
 use tokio::process::Command;
@@ -167,6 +168,25 @@ fn err_to_string(error: impl std::fmt::Display) -> String {
 
 #[tauri::command]
 pub async fn opencode_provider_login(provider: Option<String>) -> Result<String, String> {
+    if let Some(raw_provider) = provider.as_deref() {
+        if let Some(payload) = raw_provider.strip_prefix("direct-token:") {
+            let Some((provider_id, encoded_value)) = payload.split_once(':') else {
+                return Err("invalid direct token payload".to_string());
+            };
+            let decoded = general_purpose::STANDARD
+                .decode(encoded_value.trim())
+                .map_err(|error| format!("invalid encoded token: {error}"))?;
+            let secret = String::from_utf8(decoded)
+                .map_err(|error| format!("token was not valid UTF-8: {error}"))?;
+            let provider_id = provider_id.trim().to_string();
+            tokio::task::spawn_blocking(move || save_opencode_api_key_credential(&provider_id, &secret))
+                .await
+                .map_err(|error| error.to_string())?
+                .map_err(err_to_string)?;
+            return Ok("Provider credential saved".to_string());
+        }
+    }
+
     let mut command = Command::new("opencode");
     process_utils::configure_tokio_command(&mut command);
     command.arg("auth").arg("login");
