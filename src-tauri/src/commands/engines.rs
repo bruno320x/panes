@@ -1,12 +1,7 @@
-use std::{
-    fs,
-    path::PathBuf,
-    time::Instant,
-};
+use std::time::Instant;
 
 use anyhow::Context;
-use base64::{engine::general_purpose, Engine as _};
-use serde_json::{json, Value};
+use serde_json::Value;
 use tauri::State;
 use tokio::process::Command;
 
@@ -167,116 +162,110 @@ fn err_to_string(error: impl std::fmt::Display) -> String {
 }
 
 #[tauri::command]
-pub async fn opencode_provider_login(provider: Option<String>) -> Result<String, String> {
-    if let Some(raw_provider) = provider.as_deref() {
-        if let Some(payload) = raw_provider.strip_prefix("direct-token:") {
-            let Some((provider_id, encoded_value)) = payload.split_once(':') else {
-                return Err("invalid direct token payload".to_string());
-            };
-            let decoded = general_purpose::STANDARD
-                .decode(encoded_value.trim())
-                .map_err(|error| format!("invalid encoded token: {error}"))?;
-            let secret = String::from_utf8(decoded)
-                .map_err(|error| format!("token was not valid UTF-8: {error}"))?;
-            let provider_id = provider_id.trim().to_string();
-            tokio::task::spawn_blocking(move || save_opencode_api_key_credential(&provider_id, &secret))
-                .await
-                .map_err(|error| error.to_string())?
-                .map_err(err_to_string)?;
-            return Ok("Provider credential saved".to_string());
-        }
-    }
-
-    let mut command = Command::new("opencode");
-    process_utils::configure_tokio_command(&mut command);
-    command.arg("auth").arg("login");
-    if let Some(p) = provider {
-        command.arg(p);
-    }
-    command.stdin(std::process::Stdio::null());
-
-    let output = command
-        .output()
+pub async fn get_opencode_providers(
+    state: State<'_, AppState>,
+    cwd: String,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .list_opencode_providers(&cwd)
         .await
-        .map_err(|e| format!("failed to execute opencode auth login: {}", e))?;
-
-    if output.status.success() {
-        Ok("Provider connected successfully".to_string())
-    } else {
-        Err(format!(
-            "failed to connect provider: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ))
-    }
+        .map_err(err_to_string)
 }
 
 #[tauri::command]
-pub async fn opencode_save_api_key_credential(
-    provider_id: String,
-    api_key: String,
-) -> Result<String, String> {
-    let provider_id = provider_id.trim().to_string();
-    let api_key = api_key.trim().to_string();
-    tokio::task::spawn_blocking(move || save_opencode_api_key_credential(&provider_id, &api_key))
+pub async fn get_opencode_provider_auth(
+    state: State<'_, AppState>,
+    cwd: String,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .list_opencode_provider_auth(&cwd)
         .await
-        .map_err(|error| error.to_string())?
-        .map_err(err_to_string)?;
-    Ok("Provider credential saved".to_string())
+        .map_err(err_to_string)
 }
 
-fn save_opencode_api_key_credential(provider_id: &str, api_key: &str) -> anyhow::Result<()> {
-    if provider_id.is_empty() {
-        anyhow::bail!("provider id is required");
-    }
-    if api_key.is_empty() {
-        anyhow::bail!("API key is required");
-    }
-
-    let auth_path = opencode_auth_path()?;
-    if let Some(parent) = auth_path.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create OpenCode data directory: {}", parent.display()))?;
-    }
-
-    let mut auth = if auth_path.exists() {
-        let raw = fs::read_to_string(&auth_path)
-            .with_context(|| format!("failed to read OpenCode auth file: {}", auth_path.display()))?;
-        serde_json::from_str::<Value>(&raw).unwrap_or_else(|_| json!({}))
-    } else {
-        json!({})
-    };
-
-    if !auth.is_object() {
-        auth = json!({});
-    }
-    let Some(object) = auth.as_object_mut() else {
-        anyhow::bail!("OpenCode auth file root is not an object");
-    };
-    object.insert(provider_id.to_string(), json!({ "type": "api", "key": api_key }));
-
-    fs::write(&auth_path, format!("{}\n", serde_json::to_string_pretty(&auth)?))
-        .with_context(|| format!("failed to write OpenCode auth file: {}", auth_path.display()))?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(&auth_path, fs::Permissions::from_mode(0o600))
-            .with_context(|| format!("failed to secure OpenCode auth file: {}", auth_path.display()))?;
-    }
-
-    Ok(())
+#[tauri::command]
+pub async fn set_opencode_provider_auth(
+    state: State<'_, AppState>,
+    cwd: String,
+    provider_id: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    let provider_id = require_non_empty(provider_id, "provider_id")?;
+    state
+        .engines
+        .set_opencode_provider_auth(&cwd, &provider_id, body)
+        .await
+        .map_err(err_to_string)
 }
 
-fn opencode_auth_path() -> anyhow::Result<PathBuf> {
-    let data_dir = std::env::var_os("XDG_DATA_HOME")
-        .map(PathBuf::from)
-        .or_else(|| home_dir().map(|home| home.join(".local").join("share")))
-        .context("failed to resolve home directory for OpenCode auth storage")?;
-    Ok(data_dir.join("opencode").join("auth.json"))
+#[tauri::command]
+pub async fn start_opencode_provider_oauth(
+    state: State<'_, AppState>,
+    cwd: String,
+    provider_id: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    let provider_id = require_non_empty(provider_id, "provider_id")?;
+    state
+        .engines
+        .start_opencode_provider_oauth(&cwd, &provider_id, body)
+        .await
+        .map_err(err_to_string)
 }
 
-fn home_dir() -> Option<PathBuf> {
-    std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(PathBuf::from)
+#[tauri::command]
+pub async fn complete_opencode_provider_oauth(
+    state: State<'_, AppState>,
+    cwd: String,
+    provider_id: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    let provider_id = require_non_empty(provider_id, "provider_id")?;
+    state
+        .engines
+        .complete_opencode_provider_oauth(&cwd, &provider_id, body)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn get_opencode_config(
+    state: State<'_, AppState>,
+    cwd: String,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .get_opencode_config(&cwd)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn patch_opencode_config(
+    state: State<'_, AppState>,
+    cwd: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .patch_opencode_config(&cwd, body)
+        .await
+        .map_err(err_to_string)
+}
+
+fn require_non_empty(value: String, field_name: &str) -> Result<String, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(format!("{field_name} is required"));
+    }
+    Ok(trimmed.to_string())
 }

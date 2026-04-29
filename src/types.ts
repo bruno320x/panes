@@ -545,6 +545,35 @@ export interface OpenCodeRuntimeCatalog {
   mcpServers: OpenCodeMcpServer[];
 }
 
+export interface OpenCodeProviderAuthMethod {
+  type: string;
+  label: string;
+}
+
+export interface OpenCodeProviderApiModel {
+  id: string;
+  name: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
+export interface OpenCodeProviderApiItem {
+  id: string;
+  name: string;
+  env?: string[];
+  models?: Record<string, OpenCodeProviderApiModel>;
+  [key: string]: unknown;
+}
+
+export interface OpenCodeProviderListResponse {
+  all: OpenCodeProviderApiItem[];
+  connected: string[];
+  default?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+export type OpenCodeProviderAuthResponse = Record<string, OpenCodeProviderAuthMethod[]>;
+
 export interface OpenCodeAgent {
   name: string;
   description?: string | null;

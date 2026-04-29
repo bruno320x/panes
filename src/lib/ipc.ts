@@ -43,6 +43,8 @@ import type {
   MessageWindow,
   MessageWindowCursor,
   OpenCodeRemoteSessionPage,
+  OpenCodeProviderAuthResponse,
+  OpenCodeProviderListResponse,
   OpenCodeRuntimeCatalog,
   ReadFileResult,
   ResolvedEditorFileReference,
@@ -330,13 +332,25 @@ export const ipc = {
   prewarmEngine: (engineId: string) => invoke<void>("prewarm_engine", { engineId }),
   runEngineCheck: (engineId: string, command: string) =>
     invoke<EngineCheckResult>("run_engine_check", { engineId, command }),
-  openCodeProviderLogin: (provider?: string) =>
-    invoke<string>("opencode_provider_login", { provider }),
   listCodexSkills: (cwd: string) =>
     invoke<CodexSkill[]>("list_codex_skills", { cwd }),
   listCodexApps: () => invoke<CodexApp[]>("list_codex_apps"),
   getOpenCodeRuntimeCatalog: (cwd: string) =>
     invoke<OpenCodeRuntimeCatalog>("get_opencode_runtime_catalog", { cwd }),
+  getOpenCodeProviders: (cwd: string) =>
+    invoke<OpenCodeProviderListResponse>("get_opencode_providers", { cwd }),
+  getOpenCodeProviderAuth: (cwd: string) =>
+    invoke<OpenCodeProviderAuthResponse>("get_opencode_provider_auth", { cwd }),
+  setOpenCodeProviderAuth: (cwd: string, providerId: string, body: Record<string, unknown>) =>
+    invoke<unknown>("set_opencode_provider_auth", { cwd, providerId, body }),
+  startOpenCodeProviderOAuth: (cwd: string, providerId: string, body: Record<string, unknown>) =>
+    invoke<unknown>("start_opencode_provider_oauth", { cwd, providerId, body }),
+  completeOpenCodeProviderOAuth: (cwd: string, providerId: string, body: Record<string, unknown>) =>
+    invoke<unknown>("complete_opencode_provider_oauth", { cwd, providerId, body }),
+  getOpenCodeConfig: (cwd: string) =>
+    invoke<Record<string, unknown>>("get_opencode_config", { cwd }),
+  patchOpenCodeConfig: (cwd: string, body: Record<string, unknown>) =>
+    invoke<Record<string, unknown>>("patch_opencode_config", { cwd, body }),
   sendMessage: (
     threadId: string,
     message: string,
