@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use anyhow::Context;
+use serde_json::Value;
 use tauri::State;
 use tokio::process::Command;
 
@@ -158,4 +159,128 @@ fn truncate_output(value: &str, max_chars: usize) -> String {
 
 fn err_to_string(error: impl std::fmt::Display) -> String {
     error.to_string()
+}
+
+#[tauri::command]
+pub async fn get_opencode_providers(
+    state: State<'_, AppState>,
+    cwd: String,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .list_opencode_providers(&cwd)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn get_opencode_provider_auth(
+    state: State<'_, AppState>,
+    cwd: String,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .list_opencode_provider_auth(&cwd)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn set_opencode_provider_auth(
+    state: State<'_, AppState>,
+    cwd: String,
+    provider_id: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    let provider_id = require_non_empty(provider_id, "provider_id")?;
+    state
+        .engines
+        .set_opencode_provider_auth(&cwd, &provider_id, body)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn delete_opencode_provider_auth(
+    state: State<'_, AppState>,
+    cwd: String,
+    provider_id: String,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    let provider_id = require_non_empty(provider_id, "provider_id")?;
+    state
+        .engines
+        .delete_opencode_provider_auth(&cwd, &provider_id)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn start_opencode_provider_oauth(
+    state: State<'_, AppState>,
+    cwd: String,
+    provider_id: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    let provider_id = require_non_empty(provider_id, "provider_id")?;
+    state
+        .engines
+        .start_opencode_provider_oauth(&cwd, &provider_id, body)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn complete_opencode_provider_oauth(
+    state: State<'_, AppState>,
+    cwd: String,
+    provider_id: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    let provider_id = require_non_empty(provider_id, "provider_id")?;
+    state
+        .engines
+        .complete_opencode_provider_oauth(&cwd, &provider_id, body)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn get_opencode_config(
+    state: State<'_, AppState>,
+    cwd: String,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .get_opencode_config(&cwd)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn patch_opencode_config(
+    state: State<'_, AppState>,
+    cwd: String,
+    body: Value,
+) -> Result<Value, String> {
+    let cwd = require_non_empty(cwd, "cwd")?;
+    state
+        .engines
+        .patch_opencode_config(&cwd, body)
+        .await
+        .map_err(err_to_string)
+}
+
+fn require_non_empty(value: String, field_name: &str) -> Result<String, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(format!("{field_name} is required"));
+    }
+    Ok(trimmed.to_string())
 }

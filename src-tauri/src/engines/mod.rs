@@ -587,6 +587,55 @@ impl EngineManager {
         self.opencode.runtime_catalog(cwd).await
     }
 
+    pub async fn list_opencode_providers(&self, cwd: &str) -> anyhow::Result<Value> {
+        self.opencode.list_providers(cwd).await
+    }
+
+    pub async fn list_opencode_provider_auth(&self, cwd: &str) -> anyhow::Result<Value> {
+        self.opencode.list_provider_auth(cwd).await
+    }
+
+    pub async fn set_opencode_provider_auth(
+        &self,
+        cwd: &str,
+        provider_id: &str,
+        body: Value,
+    ) -> anyhow::Result<Value> {
+        self.opencode.put_provider_auth(cwd, provider_id, body).await
+    }
+
+    pub async fn start_opencode_provider_oauth(
+        &self,
+        cwd: &str,
+        provider_id: &str,
+        body: Value,
+    ) -> anyhow::Result<Value> {
+        self.opencode
+            .authorize_provider_oauth(cwd, provider_id, body)
+            .await
+    }
+
+    pub async fn complete_opencode_provider_oauth(
+        &self,
+        cwd: &str,
+        provider_id: &str,
+        body: Value,
+    ) -> anyhow::Result<Value> {
+        self.opencode.oauth_callback(cwd, provider_id, body).await
+    }
+
+    pub async fn get_opencode_config(&self, cwd: &str) -> anyhow::Result<Value> {
+        self.opencode.get_config(cwd).await
+    }
+
+    pub async fn patch_opencode_config(
+        &self,
+        cwd: &str,
+        body: Value,
+    ) -> anyhow::Result<Value> {
+        self.opencode.patch_config(cwd, body).await
+    }
+
     pub async fn fork_codex_thread(
         &self,
         engine_thread_id: &str,
