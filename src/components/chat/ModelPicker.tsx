@@ -186,11 +186,13 @@ interface ModelMetadataChip {
 export function modelMetadataChips(
   t: TFunction<"chat">,
   model: EngineModel,
+  engineId?: string,
 ): ModelMetadataChip[] {
   const chips: ModelMetadataChip[] = [];
   const attachmentModalities = new Set(
     (model.attachmentModalities ?? []).map((modality) => modality.toLowerCase()),
   );
+  const attachmentMetadataMissing = (model.attachmentModalities ?? []).length === 0;
 
   if (attachmentModalities.has("image")) {
     chips.push({ label: t("modelPicker.metadata.vision") });
@@ -200,7 +202,12 @@ export function modelMetadataChips(
   }
   if (attachmentModalities.has("text")) {
     chips.push({ label: t("modelPicker.metadata.files") });
-  } else if ((model.attachmentModalities ?? []).length === 0) {
+  } else if (attachmentMetadataMissing && engineId === "opencode") {
+    chips.push({
+      label: t("modelPicker.metadata.files"),
+      title: "OpenCode did not report attachment metadata for this model; basic file support is handled by the OpenCode runtime.",
+    });
+  } else if (attachmentMetadataMissing) {
     chips.push({ label: t("modelPicker.metadata.noFiles") });
   }
 
@@ -282,12 +289,18 @@ export function ModelPicker({
   const wasOpenRef = useRef(false);
   const [pos, setPos] = useState({ bottom: 0, left: 0 });
   const ensureEngineHealth = useEngineStore((state) => state.ensureHealth);
+  const reloadEngines = useEngineStore((state) => state.load);
   const [providerLoginLoading, setProviderLoginLoading] = useState(false);
 
   const handleAddProvider = async () => {
     setProviderLoginLoading(true);
     try {
       await ipc.openCodeProviderLogin();
+      await reloadEngines();
+      await ensureEngineHealth("opencode", { force: true });
+      setActiveEngineId("opencode");
+      setOpenCodeModelQuery("");
+      setLegacyExpanded(false);
     } catch (error) {
       console.error("Failed to add provider:", error);
     } finally {
@@ -705,7 +718,7 @@ function ModelRow({
   const { t } = useTranslation("chat");
   const efforts = model.supportedReasoningEfforts ?? [];
   const showControls = efforts.length > 0;
-  const metadataChips = modelMetadataChips(t, model);
+  const metadataChips = modelMetadataChips(t, model, engineId);
   const showMetadataChips = isSelected;
   const showDescription = shouldShowModelDescription(engineId, model);
   const modelClassName = [
@@ -767,8 +780,8 @@ function ModelRow({
                 >
                   {effortDisplayLabel(t, opt.reasoningEffort)}
                 </button>
-                );
-              })}
+              );
+            })}
           </div>
         </div>
       )}
