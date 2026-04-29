@@ -49,6 +49,18 @@ function groupProviders(models: EngineModel[]): ProviderGroup[] {
   return Array.from(groups.values()).sort((a, b) => a.providerLabel.localeCompare(b.providerLabel));
 }
 
+function modelsEndpoint(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (!trimmed) return "";
+  if (trimmed.endsWith("/models")) return trimmed;
+  if (trimmed.endsWith("/v1")) return `${trimmed}/models`;
+  return `${trimmed}/v1/models`;
+}
+
+function normalizeProviderId(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
 export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh }: Props) {
   const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
   const workspaces = useWorkspaceStore((state) => state.workspaces);
@@ -58,6 +70,14 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
   const [query, setQuery] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [customProviderId, setCustomProviderId] = useState("");
+  const [customProviderName, setCustomProviderName] = useState("");
+  const [customBaseUrl, setCustomBaseUrl] = useState("");
+  const [customModels, setCustomModels] = useState<string[]>([]);
+  const [selectedCustomModels, setSelectedCustomModels] = useState<string[]>([]);
+  const [customModelDraft, setCustomModelDraft] = useState("");
+  const [discovering, setDiscovering] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const providers = useMemo(() => groupProviders(models), [models]);
   const filteredProviders = useMemo(() => {
@@ -103,13 +123,101 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
       await ipc.terminalWrite(activeWorkspaceId, session.id, "opencode\r");
       await new Promise((resolve) => window.setTimeout(resolve, 1200));
       await ipc.terminalWrite(activeWorkspaceId, session.id, "/connect\r");
-      setStatus("Complete setup in OpenCode, then reopen the picker if models do not refresh automatically.");
+      setStatus("Complete setup in OpenCode, then return to the picker.");
       window.setTimeout(() => {
         void refreshOpenCode();
       }, 4000);
     } catch (error) {
       setStatus(`Failed to open OpenCode /connect: ${String(error)}`);
     }
+  }
+
+  async function discoverModels() {
+    const endpoint = modelsEndpoint(customBaseUrl);
+    if (!endpoint) {
+      setStatus("Enter the provider base URL first.");
+      return;
+    }
+    setDiscovering(true);
+    setStatus("Searching models at the custom endpoint...");
+    try {
+      const response = await fetch(endpoint);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const payload = await response.json() as { data?: Array<{ id?: string }> };
+      const discovered = (payload.data ?? [])
+        .map((item) => item.id)
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .sort((a, b) => a.localeCompare(b));
+      setCustomModels(discovered);
+      setSelectedCustomModels(discovered.slice(0, 12));
+      setStatus(discovered.length ? `Found ${discovered.length} models.` : "No model ids were found at that endpoint.");
+    } catch (error) {
+      setStatus(`Model discovery failed: ${String(error)}`);
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
+  function addManualModel() {
+    const modelId = customModelDraft.trim();
+    if (!modelId) return;
+    setCustomModels((current) => Array.from(new Set([...current, modelId])).sort((a, b) => a.localeCompare(b)));
+    setSelectedCustomModels((current) => Array.from(new Set([...current, modelId])));
+    setCustomModelDraft("");
+  }
+
+  async function saveCustomProvider() {
+    if (!activeWorkspace) {
+      setStatus("Open a workspace before saving a custom provider.");
+      return;
+    }
+    const providerId = normalizeProviderId(customProviderId);
+    const baseUrl = customBaseUrl.trim().replace(/\/+$/, "");
+    if (!providerId || !baseUrl || selectedCustomModels.length === 0) {
+      setStatus("Provider id, base URL, and at least one model are required.");
+      return;
+    }
+    setSaving(true);
+    try {
+      let config: Record<string, unknown> = {};
+      try {
+        const existing = await ipc.readFile(activeWorkspace.rootPath, "opencode.json");
+        config = JSON.parse(existing.content) as Record<string, unknown>;
+      } catch {
+        config = {};
+      }
+      const providerMap =
+        typeof config.provider === "object" && config.provider !== null && !Array.isArray(config.provider)
+          ? { ...(config.provider as Record<string, unknown>) }
+          : {};
+      providerMap[providerId] = {
+        npm: "@ai-sdk/openai-compatible",
+        name: customProviderName.trim() || titleCase(providerId),
+        options: { baseURL: baseUrl },
+        models: Object.fromEntries(selectedCustomModels.map((modelId) => [modelId, { name: modelId }])),
+      };
+      await ipc.writeFile(
+        activeWorkspace.rootPath,
+        "opencode.json",
+        `${JSON.stringify({ ...config, provider: providerMap }, null, 2)}\n`,
+        activeWorkspace.id,
+      );
+      setStatus("Custom provider saved. Opening /connect so OpenCode can store credentials.");
+      await refreshOpenCode();
+      await openConnect();
+    } catch (error) {
+      setStatus(`Failed to save custom provider: ${String(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggleCustomModel(modelId: string) {
+    setSelectedCustomModels((current) =>
+      current.includes(modelId)
+        ? current.filter((value) => value !== modelId)
+        : [...current, modelId],
+    );
   }
 
   return (
@@ -130,9 +238,9 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: 0, flex: 1 }}>
           <div style={{ borderRight: "1px solid var(--border)", padding: 12, overflow: "auto" }}>
-            <button type="button" onClick={() => setSelectedProviderId("custom")} style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer" }}>
+            <button type="button" onClick={() => setSelectedProviderId("custom")} style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: selectedProviderId === "custom" ? "var(--accent-dim)" : "transparent" }}>
               <div style={{ fontWeight: 600 }}>Custom</div>
-              <div style={{ color: "var(--text-3)", fontSize: 11 }}>Use OpenCode /connect, then edit opencode.json if needed.</div>
+              <div style={{ color: "var(--text-3)", fontSize: 11 }}>OpenAI-compatible endpoint</div>
             </button>
             <div style={{ height: 8 }} />
             {filteredProviders.map((provider) => (
@@ -149,8 +257,27 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
             {selectedProviderId === "custom" ? (
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={{ fontWeight: 600 }}>Custom provider</div>
-                <div style={{ color: "var(--text-2)" }}>OpenCode handles the interactive provider setup. Custom endpoint editing will be handled in a follow-up without exposing advanced settings in the main picker.</div>
-                <button type="button" className="btn btn-primary" onClick={openConnect}>Open /connect</button>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <input value={customProviderId} onChange={(event) => setCustomProviderId(event.target.value)} placeholder="Provider id" style={{ padding: 9, border: "1px solid var(--border)", borderRadius: 8 }} />
+                  <input value={customProviderName} onChange={(event) => setCustomProviderName(event.target.value)} placeholder="Display name" style={{ padding: 9, border: "1px solid var(--border)", borderRadius: 8 }} />
+                </div>
+                <input value={customBaseUrl} onChange={(event) => setCustomBaseUrl(event.target.value)} placeholder="Base URL" style={{ padding: 9, border: "1px solid var(--border)", borderRadius: 8 }} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" className="btn btn-outline" onClick={discoverModels} disabled={discovering}>{discovering ? "Searching..." : "Find models"}</button>
+                  <button type="button" className="btn btn-primary" onClick={saveCustomProvider} disabled={saving}>{saving ? "Saving..." : "Save and connect"}</button>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={customModelDraft} onChange={(event) => setCustomModelDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addManualModel(); } }} placeholder="Add model id manually" style={{ flex: 1, padding: 9, border: "1px solid var(--border)", borderRadius: 8 }} />
+                  <button type="button" className="btn btn-outline" onClick={addManualModel}>Add</button>
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  {customModels.map((modelId) => (
+                    <label key={modelId} style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, border: "1px solid var(--border)", borderRadius: 8 }}>
+                      <input type="checkbox" checked={selectedCustomModels.includes(modelId)} onChange={() => toggleCustomModel(modelId)} />
+                      <span>{modelId}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             ) : selectedProvider ? (
               <div style={{ display: "grid", gap: 14 }}>
