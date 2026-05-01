@@ -786,9 +786,18 @@ function readOpenCodeThreadPermissionModeValue(
   return "inherit";
 }
 
-function readThreadOpenCodeAgentValue(thread: Thread | null): string {
+function readThreadOpenCodeAgentValue(
+  thread: Thread | null,
+  defaultAgent?: string | null,
+): string {
   const value = thread?.engineMetadata?.opencodeAgent;
-  return typeof value === "string" && value.trim() ? value.trim() : "build";
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (typeof defaultAgent === "string" && defaultAgent.trim()) {
+    return defaultAgent.trim();
+  }
+  return "build";
 }
 
 function readThreadApprovalPolicyValue(thread: Thread | null): ThreadApprovalPolicyValue {
@@ -1927,6 +1936,10 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
       ),
     [openCodeCatalog?.agents],
   );
+  const openCodeDefaultAgent = useMemo(() => {
+    const value = openCodeCatalog?.defaultAgent;
+    return typeof value === "string" && value.trim() ? value.trim() : "build";
+  }, [openCodeCatalog?.defaultAgent]);
   const openCodeSlashCommands = useMemo<SlashCommand[]>(
     () =>
       selectedEngineId === "opencode"
@@ -2293,7 +2306,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
         serviceTier: selectedServiceTier,
         outputSchemaText,
         customApprovalPolicyText,
-        openCodeAgent: readThreadOpenCodeAgentValue(promptThread),
+        openCodeAgent: readThreadOpenCodeAgentValue(promptThread, openCodeDefaultAgent),
       });
       return;
     }
@@ -2997,11 +3010,19 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
 
   useEffect(() => {
     if (activeThread?.engineId === "opencode") {
-      setSelectedOpenCodeAgent(readThreadOpenCodeAgentValue(activeThread));
+      setSelectedOpenCodeAgent(readThreadOpenCodeAgentValue(activeThread, openCodeDefaultAgent));
     } else if (selectedEngineId !== "opencode") {
       setSelectedOpenCodeAgent("build");
+    } else {
+      setSelectedOpenCodeAgent(openCodeDefaultAgent);
     }
-  }, [activeThread?.engineId, activeThread?.id, activeThread?.engineMetadata, selectedEngineId]);
+  }, [
+    activeThread?.engineId,
+    activeThread?.id,
+    activeThread?.engineMetadata,
+    openCodeDefaultAgent,
+    selectedEngineId,
+  ]);
 
   useEffect(() => {
     if (!activeThread) {
@@ -3445,7 +3466,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
 
     try {
       const updatedThread = await ipc.setThreadOpenCodeConfig(activeThread.id, {
-        agent: agent === "build" ? null : agent,
+        agent: agent === openCodeDefaultAgent ? null : agent,
       });
       applyThreadUpdateLocal(updatedThread);
     } catch (error) {
@@ -3470,7 +3491,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
     const agent = config?.agent ?? selectedOpenCodeAgentRef.current;
     try {
       const updatedThread = await ipc.setThreadOpenCodeConfig(targetThreadId, {
-        agent: agent === "build" ? null : agent,
+        agent: agent === openCodeDefaultAgent ? null : agent,
       });
       applyThreadUpdateLocal(updatedThread);
       return true;
@@ -3495,6 +3516,21 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
     setActiveThreadInStore(forkedThread.id);
     await bindChatThread(forkedThread.id);
     toast.success(t("panel.toasts.codexThreadForked"));
+  }
+
+  async function onForkOpenCodeThread() {
+    if (!activeThread || activeThread.engineId !== "opencode") {
+      throw new Error(t("panel.toasts.openCodeThreadToolUnavailable"));
+    }
+
+    const forkedThread = await ipc.forkOpenCodeThread(activeThread.id);
+    if (!forkedThread) {
+      throw new Error(t("panel.toasts.openCodeThreadForkFailed"));
+    }
+
+    setActiveThreadInStore(forkedThread.id);
+    await bindChatThread(forkedThread.id);
+    toast.success(t("panel.toasts.openCodeThreadForked"));
   }
 
   async function onStartCodexReview(request: {
@@ -3555,6 +3591,24 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
     toast.success(t("panel.toasts.codexThreadCompactionStarted"));
   }
 
+  async function onCompactOpenCodeThread() {
+    if (!activeThread || activeThread.engineId !== "opencode") {
+      throw new Error(t("panel.toasts.openCodeThreadToolUnavailable"));
+    }
+
+    const compactedThread = await ipc.compactOpenCodeThread(activeThread.id);
+    if (!compactedThread) {
+      throw new Error(t("panel.toasts.openCodeThreadCompactFailed"));
+    }
+
+    toast.success(t("panel.toasts.openCodeThreadCompactionStarted"));
+  }
+
+  async function onOpenThread(thread: import("../../types").Thread) {
+    setActiveThreadInStore(thread.id);
+    await bindChatThread(thread.id);
+  }
+
   async function onAttachCodexRemoteThread(engineThreadId: string) {
     if (!activeWorkspaceId || !selectedModelId) {
       throw new Error(t("panel.toasts.codexThreadResumeUnavailable"));
@@ -3604,6 +3658,11 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
   const canUseNativeCodexHistoryTools =
     canManageActiveCodexThread &&
     activeThread?.engineMetadata?.codexTranscriptImported !== false;
+  const canManageActiveOpenCodeThread =
+    !!activeThread &&
+    activeThread.engineId === "opencode" &&
+    !!activeThread.engineThreadId &&
+    !streaming;
 
   const isCodexEngine = selectedEngineId === "codex";
   const isOpenCodeEngine = selectedEngineId === "opencode";
@@ -3623,10 +3682,14 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
         {
           id: "fork",
           name: "fork",
-          description: t("threadPicker.forkDescription"),
+          description: isOpenCodeEngine
+            ? t("threadPicker.openCodeForkDescription")
+            : t("threadPicker.forkDescription"),
           icon: GitBranch,
-          codexOnly: true,
-          disabled: !canUseNativeCodexHistoryTools,
+          codexOnly: !isOpenCodeEngine,
+          disabled: isOpenCodeEngine
+            ? !canManageActiveOpenCodeThread
+            : !canUseNativeCodexHistoryTools,
         },
         {
           id: "rollback",
@@ -3639,10 +3702,14 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
         {
           id: "compact",
           name: "compact",
-          description: t("threadPicker.compactDescription"),
+          description: isOpenCodeEngine
+            ? t("threadPicker.openCodeCompactDescription")
+            : t("threadPicker.compactDescription"),
           icon: Scissors,
-          codexOnly: true,
-          disabled: !canManageActiveCodexThread,
+          codexOnly: !isOpenCodeEngine,
+          disabled: isOpenCodeEngine
+            ? !canManageActiveOpenCodeThread
+            : !canManageActiveCodexThread,
         },
         {
           id: "fast",
@@ -3710,6 +3777,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
     ],
     [
       canManageActiveCodexThread,
+      canManageActiveOpenCodeThread,
       canUseNativeCodexHistoryTools,
       isCodexEngine,
       isOpenCodeEngine,
@@ -3772,10 +3840,18 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
     try {
       switch (command.type) {
         case "fork":
-          await onForkCodexThread();
+          if (activeThread?.engineId === "opencode") {
+            await onForkOpenCodeThread();
+          } else {
+            await onForkCodexThread();
+          }
           break;
         case "compact":
-          await onCompactCodexThread();
+          if (activeThread?.engineId === "opencode") {
+            await onCompactOpenCodeThread();
+          } else {
+            await onCompactCodexThread();
+          }
           break;
         case "rollback":
           if (payload?.numTurns) {
@@ -5518,6 +5594,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
                     workspaceId={activeWorkspaceId}
                     selectedModelId={selectedModelId}
                     onAttachOpenCodeSession={onAttachOpenCodeRemoteSession}
+                    onOpenThread={onOpenThread}
                     mcpServers={
                       selectedEngineId === "opencode"
                         ? undefined
@@ -5684,6 +5761,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
                   <OpenCodeAgentPicker
                     agents={openCodeSelectableAgents}
                     selectedAgent={selectedOpenCodeAgent}
+                    defaultAgent={openCodeDefaultAgent}
                     onAgentChange={(agent) => void onOpenCodeAgentChange(agent)}
                     disabled={!openCodeCatalogLoaded && openCodeSelectableAgents.length === 0}
                   />
@@ -5736,7 +5814,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
                       );
                       selectedModelIdRef.current = modelId;
                       setSelectedModelId(modelId);
-                      if (nextEffort && nextEffort !== selectedEffort) {
+                      if (nextEffort && nextEffort !== selectedEffortRef.current) {
                         selectedEffortRef.current = nextEffort;
                         setSelectedEffort(nextEffort);
                       }

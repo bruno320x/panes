@@ -251,10 +251,7 @@ pub async fn complete_opencode_provider_oauth(
 }
 
 #[tauri::command]
-pub async fn get_opencode_config(
-    state: State<'_, AppState>,
-    cwd: String,
-) -> Result<Value, String> {
+pub async fn get_opencode_config(state: State<'_, AppState>, cwd: String) -> Result<Value, String> {
     let cwd = require_non_empty(cwd, "cwd")?;
     state
         .engines

@@ -118,6 +118,61 @@ pub struct OpenCodeRemoteSessionPageDto {
     pub next_cursor: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenCodeFileDiffDto {
+    pub file: String,
+    pub before: String,
+    pub after: String,
+    pub additions: i64,
+    pub deletions: i64,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenCodeTodoDto {
+    pub content: String,
+    pub status: String,
+    pub priority: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenCodeSessionSummaryDto {
+    pub additions: i64,
+    pub deletions: i64,
+    pub files: i64,
+    #[serde(default)]
+    pub diffs: Vec<OpenCodeFileDiffDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenCodeSessionRevertStateDto {
+    pub message_id: String,
+    pub part_id: Option<String>,
+    pub snapshot: Option<String>,
+    pub diff: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenCodeRemoteSessionDetailDto {
+    pub engine_thread_id: String,
+    pub title: Option<String>,
+    pub cwd: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived: bool,
+    pub slug: Option<String>,
+    pub parent_thread_id: Option<String>,
+    pub version: Option<String>,
+    pub share_url: Option<String>,
+    pub summary: Option<OpenCodeSessionSummaryDto>,
+    pub revert: Option<OpenCodeSessionRevertStateDto>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ThreadStatusDto {
@@ -432,6 +487,7 @@ pub struct OpenCodeRuntimeCatalogDto {
     pub commands: Vec<OpenCodeCommandDto>,
     #[serde(default)]
     pub mcp_servers: Vec<OpenCodeMcpServerDto>,
+    pub default_agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -4073,9 +4073,10 @@ export function TerminalPanel({ workspaceId, embedded = false }: TerminalPanelPr
               ? `${groupNotification.title}: ${groupNotification.body}`
               : undefined;
             return (
-              <button
+              <div
                 key={group.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 className={`terminal-tab${isActive ? " terminal-tab-active" : ""}${draggingGroupId === group.id ? " terminal-tab-dragging" : ""}`}
                 title={groupNotificationPreview}
                 onClick={() => {
@@ -4087,6 +4088,13 @@ export function TerminalPanel({ workspaceId, embedded = false }: TerminalPanelPr
                   e.preventDefault();
                   setTerminalCtxMenu(null);
                   setCtxMenu({ groupId: group.id, x: e.clientX, y: e.clientY });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (suppressClickRef.current) return;
+                    setActiveGroup(workspaceId, group.id);
+                  }
                 }}
               >
                 {displayHarness.harnessId
@@ -4140,7 +4148,7 @@ export function TerminalPanel({ workspaceId, embedded = false }: TerminalPanelPr
                 >
                   <X size={10} />
                 </button>
-              </button>
+              </div>
             );
           })}
         </div>

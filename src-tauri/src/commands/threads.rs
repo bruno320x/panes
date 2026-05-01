@@ -6,12 +6,17 @@ use crate::{
     db,
     engines::validate_engine_sandbox_mode,
     engines::CodexRemoteThreadSummary,
+    engines::OpenCodeFileDiffSummary,
+    engines::OpenCodeRemoteSessionDetail,
     engines::OpenCodeRemoteSessionSummary,
+    engines::OpenCodeTodoSummary,
     engines::SandboxPolicy,
     engines::ThreadSyncSnapshot,
     models::{
-        CodexRemoteThreadDto, CodexRemoteThreadPageDto, MessageStatusDto, OpenCodeRemoteSessionDto,
-        OpenCodeRemoteSessionPageDto, RepoDto, ThreadDto, ThreadStatusDto, TrustLevelDto,
+        CodexRemoteThreadDto, CodexRemoteThreadPageDto, MessageStatusDto, OpenCodeFileDiffDto,
+        OpenCodeRemoteSessionDetailDto, OpenCodeRemoteSessionDto, OpenCodeRemoteSessionPageDto,
+        OpenCodeSessionRevertStateDto, OpenCodeSessionSummaryDto, OpenCodeTodoDto, RepoDto,
+        ThreadDto, ThreadStatusDto, TrustLevelDto,
     },
     state::AppState,
 };
@@ -282,8 +287,24 @@ pub async fn attach_opencode_remote_session(
     cwd: String,
     model_id: String,
 ) -> Result<ThreadDto, String> {
-    let normalized_model_id =
-        validate_model_for_engine(state.inner(), "opencode", model_id.trim()).await?;
+    attach_opencode_remote_session_inner(
+        state.inner(),
+        workspace_id,
+        engine_thread_id,
+        cwd,
+        model_id,
+    )
+    .await
+}
+
+async fn attach_opencode_remote_session_inner(
+    state: &AppState,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+    model_id: String,
+) -> Result<ThreadDto, String> {
+    let normalized_model_id = validate_model_for_engine(state, "opencode", model_id.trim()).await?;
     let db = state.db.clone();
     let (workspace_root, repos, existing_local_thread) = run_db(db.clone(), {
         let workspace_id = workspace_id.clone();
@@ -369,6 +390,244 @@ pub async fn attach_opencode_remote_session(
     .await
 }
 
+#[tauri::command]
+pub async fn get_opencode_remote_session_detail(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<OpenCodeRemoteSessionDetailDto, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let detail = state
+        .engines
+        .get_opencode_remote_session_detail(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)?;
+    Ok(map_opencode_remote_session_detail_dto(detail))
+}
+
+#[tauri::command]
+pub async fn list_opencode_remote_session_children(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<Vec<OpenCodeRemoteSessionDto>, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let sessions = state
+        .engines
+        .list_opencode_remote_session_children(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)?;
+    let db = state.db.clone();
+    run_db(db, move |db| {
+        sessions
+            .into_iter()
+            .map(|session| {
+                let local_thread_id = db::threads::find_thread_by_engine_thread_id(
+                    db,
+                    "opencode",
+                    &session.engine_thread_id,
+                )?
+                .filter(|local| local.workspace_id == workspace_id)
+                .map(|local| local.id);
+                Ok(map_opencode_remote_session_dto(session, local_thread_id))
+            })
+            .collect::<anyhow::Result<Vec<_>>>()
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn get_opencode_remote_session_todos(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<Vec<OpenCodeTodoDto>, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let todos = state
+        .engines
+        .get_opencode_remote_session_todos(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)?;
+    Ok(todos.into_iter().map(map_opencode_todo_dto).collect())
+}
+
+#[tauri::command]
+pub async fn get_opencode_remote_session_diff(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+    message_id: Option<String>,
+) -> Result<Vec<OpenCodeFileDiffDto>, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let diffs = state
+        .engines
+        .get_opencode_remote_session_diff(&cwd, &engine_thread_id, message_id.as_deref())
+        .await
+        .map_err(err_to_string)?;
+    Ok(diffs.into_iter().map(map_opencode_file_diff_dto).collect())
+}
+
+#[tauri::command]
+pub async fn share_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<OpenCodeRemoteSessionDetailDto, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let detail = state
+        .engines
+        .share_opencode_remote_session(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)?;
+    Ok(map_opencode_remote_session_detail_dto(detail))
+}
+
+#[tauri::command]
+pub async fn unshare_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<OpenCodeRemoteSessionDetailDto, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let detail = state
+        .engines
+        .unshare_opencode_remote_session(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)?;
+    Ok(map_opencode_remote_session_detail_dto(detail))
+}
+
+#[tauri::command]
+pub async fn summarize_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+    model_id: String,
+    auto: Option<bool>,
+) -> Result<bool, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let normalized_model_id =
+        validate_model_for_engine(state.inner(), "opencode", model_id.trim()).await?;
+    state
+        .engines
+        .summarize_opencode_remote_session(&cwd, &engine_thread_id, &normalized_model_id, auto)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn fork_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+    model_id: String,
+    message_id: Option<String>,
+) -> Result<ThreadDto, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let normalized_model_id =
+        validate_model_for_engine(state.inner(), "opencode", model_id.trim()).await?;
+    let forked = state
+        .engines
+        .fork_opencode_remote_session(&cwd, &engine_thread_id, message_id.as_deref())
+        .await
+        .map_err(err_to_string)?;
+    attach_opencode_remote_session_inner(
+        state.inner(),
+        workspace_id,
+        forked.engine_thread_id,
+        forked.cwd,
+        normalized_model_id,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn revert_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+    message_id: String,
+    part_id: Option<String>,
+) -> Result<OpenCodeRemoteSessionDetailDto, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let detail = state
+        .engines
+        .revert_opencode_remote_session(&cwd, &engine_thread_id, &message_id, part_id.as_deref())
+        .await
+        .map_err(err_to_string)?;
+    Ok(map_opencode_remote_session_detail_dto(detail))
+}
+
+#[tauri::command]
+pub async fn unrevert_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<OpenCodeRemoteSessionDetailDto, String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    let detail = state
+        .engines
+        .unrevert_opencode_remote_session(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)?;
+    Ok(map_opencode_remote_session_detail_dto(detail))
+}
+
+#[tauri::command]
+pub async fn archive_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<(), String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    state
+        .engines
+        .archive_opencode_remote_session(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn unarchive_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<(), String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    state
+        .engines
+        .unarchive_opencode_remote_session(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)
+}
+
+#[tauri::command]
+pub async fn delete_opencode_remote_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    engine_thread_id: String,
+    cwd: String,
+) -> Result<(), String> {
+    ensure_workspace_allows_remote_cwd(state.inner(), &workspace_id, &cwd).await?;
+    state
+        .engines
+        .delete_opencode_remote_session(&cwd, &engine_thread_id)
+        .await
+        .map_err(err_to_string)
+}
+
 async fn validate_model_for_engine(
     state: &AppState,
     engine_id: &str,
@@ -421,6 +680,31 @@ async fn resolve_thread_cwd(state: &AppState, thread: &ThreadDto) -> Result<Stri
         Ok(workspace.root_path)
     })
     .await
+}
+
+async fn ensure_workspace_allows_remote_cwd(
+    state: &AppState,
+    workspace_id: &str,
+    cwd: &str,
+) -> Result<(), String> {
+    let workspace_id = workspace_id.to_string();
+    let cwd = cwd.to_string();
+    let (workspace_root, repos) = run_db(state.db.clone(), move |db| {
+        let workspace = db::workspaces::find_workspace_by_id(db, &workspace_id)?
+            .ok_or_else(|| anyhow::anyhow!("workspace not found: {workspace_id}"))?;
+        let repos = db::repos::get_repos(db, &workspace_id)?;
+        Ok((workspace.root_path, repos))
+    })
+    .await?;
+
+    let allowed_roots = collect_remote_thread_roots(&workspace_root, &repos);
+    if allowed_roots.contains(cwd.as_str()) {
+        Ok(())
+    } else {
+        Err(format!(
+            "OpenCode session cwd is outside this workspace: {cwd}"
+        ))
+    }
 }
 
 fn collect_remote_thread_roots(
@@ -596,6 +880,58 @@ fn map_opencode_remote_session_dto(
     }
 }
 
+fn map_opencode_file_diff_dto(diff: OpenCodeFileDiffSummary) -> OpenCodeFileDiffDto {
+    OpenCodeFileDiffDto {
+        file: diff.file,
+        before: diff.before,
+        after: diff.after,
+        additions: diff.additions,
+        deletions: diff.deletions,
+        status: diff.status,
+    }
+}
+
+fn map_opencode_todo_dto(todo: OpenCodeTodoSummary) -> OpenCodeTodoDto {
+    OpenCodeTodoDto {
+        content: todo.content,
+        status: todo.status,
+        priority: todo.priority,
+    }
+}
+
+fn map_opencode_remote_session_detail_dto(
+    session: OpenCodeRemoteSessionDetail,
+) -> OpenCodeRemoteSessionDetailDto {
+    OpenCodeRemoteSessionDetailDto {
+        engine_thread_id: session.engine_thread_id,
+        title: session.title,
+        cwd: session.cwd,
+        created_at: codex_remote_thread_timestamp_to_rfc3339(session.created_at),
+        updated_at: codex_remote_thread_timestamp_to_rfc3339(session.updated_at),
+        archived: session.archived,
+        slug: session.slug,
+        parent_thread_id: session.parent_thread_id,
+        version: session.version,
+        share_url: session.share_url,
+        summary: session.summary.map(|summary| OpenCodeSessionSummaryDto {
+            additions: summary.additions,
+            deletions: summary.deletions,
+            files: summary.files,
+            diffs: summary
+                .diffs
+                .into_iter()
+                .map(map_opencode_file_diff_dto)
+                .collect(),
+        }),
+        revert: session.revert.map(|revert| OpenCodeSessionRevertStateDto {
+            message_id: revert.message_id,
+            part_id: revert.part_id,
+            snapshot: revert.snapshot,
+            diff: revert.diff,
+        }),
+    }
+}
+
 fn build_opencode_remote_session_title(session: &OpenCodeRemoteSessionSummary) -> String {
     if let Some(title) = session
         .title
@@ -609,6 +945,20 @@ fn build_opencode_remote_session_title(session: &OpenCodeRemoteSessionSummary) -
                 short_thread_label(&session.engine_thread_id)
             )
         });
+    }
+
+    let cwd_label = std::path::Path::new(&session.cwd)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    if let Some(cwd_label) = cwd_label {
+        return format!(
+            "OpenCode · {} · {}",
+            cwd_label,
+            short_thread_label(&session.engine_thread_id)
+        );
     }
 
     format!(
@@ -880,6 +1230,17 @@ pub async fn rename_thread(
 
     let normalized_title = normalize_thread_title(&title)?;
 
+    if thread.engine_id == "opencode" {
+        if let Some(engine_thread_id) = thread.engine_thread_id.as_deref() {
+            let cwd = resolve_thread_cwd(state.inner(), &thread).await?;
+            state
+                .engines
+                .rename_opencode_remote_session(&cwd, engine_thread_id, &normalized_title)
+                .await
+                .map_err(err_to_string)?;
+        }
+    }
+
     run_db(db.clone(), {
         let thread_id = thread_id.clone();
         let normalized_title = normalized_title.clone();
@@ -931,10 +1292,26 @@ pub async fn delete_thread(state: State<'_, AppState>, thread_id: String) -> Res
         }
         if thread.engine_id == "opencode" {
             if let Some(engine_thread_id) = thread.engine_thread_id.as_deref() {
-                state
-                    .engines
-                    .forget_opencode_session(engine_thread_id)
-                    .await;
+                if let Ok(cwd) = resolve_thread_cwd(state.inner(), &thread).await {
+                    if let Err(error) = state
+                        .engines
+                        .delete_opencode_remote_session(&cwd, engine_thread_id)
+                        .await
+                    {
+                        log::warn!(
+                            "failed to delete remote OpenCode session before local deletion: {error}"
+                        );
+                        state
+                            .engines
+                            .forget_opencode_session(engine_thread_id)
+                            .await;
+                    }
+                } else {
+                    state
+                        .engines
+                        .forget_opencode_session(engine_thread_id)
+                        .await;
+                }
             }
         }
     } else {
@@ -1338,6 +1715,83 @@ pub async fn compact_codex_thread(
 }
 
 #[tauri::command]
+pub async fn fork_opencode_thread(
+    state: State<'_, AppState>,
+    thread_id: String,
+) -> Result<ThreadDto, String> {
+    if state.turns.get(&thread_id).await.is_some() {
+        return Err("cannot fork a thread while a turn is still active".to_string());
+    }
+
+    let db = state.db.clone();
+    let thread = run_db(db.clone(), {
+        let thread_id = thread_id.clone();
+        move |db| db::threads::get_thread(db, &thread_id)
+    })
+    .await?
+    .ok_or_else(|| format!("thread not found: {thread_id}"))?;
+
+    if thread.engine_id != "opencode" {
+        return Err("native fork is only available for OpenCode threads".to_string());
+    }
+    let engine_thread_id = thread
+        .engine_thread_id
+        .clone()
+        .ok_or_else(|| "OpenCode thread has not been initialized yet".to_string())?;
+    let cwd = resolve_thread_cwd(state.inner(), &thread).await?;
+
+    let forked = state
+        .engines
+        .fork_opencode_remote_session(&cwd, &engine_thread_id, None)
+        .await
+        .map_err(err_to_string)?;
+
+    attach_opencode_remote_session_inner(
+        state.inner(),
+        thread.workspace_id.clone(),
+        forked.engine_thread_id,
+        forked.cwd,
+        thread.model_id.clone(),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn compact_opencode_thread(
+    state: State<'_, AppState>,
+    thread_id: String,
+) -> Result<ThreadDto, String> {
+    if state.turns.get(&thread_id).await.is_some() {
+        return Err("cannot compact a thread while a turn is still active".to_string());
+    }
+
+    let db = state.db.clone();
+    let thread = run_db(db.clone(), {
+        let thread_id = thread_id.clone();
+        move |db| db::threads::get_thread(db, &thread_id)
+    })
+    .await?
+    .ok_or_else(|| format!("thread not found: {thread_id}"))?;
+
+    if thread.engine_id != "opencode" {
+        return Err("native compact is only available for OpenCode threads".to_string());
+    }
+    let engine_thread_id = thread
+        .engine_thread_id
+        .clone()
+        .ok_or_else(|| "OpenCode thread has not been initialized yet".to_string())?;
+    let cwd = resolve_thread_cwd(state.inner(), &thread).await?;
+
+    state
+        .engines
+        .summarize_opencode_remote_session(&cwd, &engine_thread_id, &thread.model_id, Some(false))
+        .await
+        .map_err(err_to_string)?;
+
+    Ok(thread)
+}
+
+#[tauri::command]
 pub async fn set_thread_execution_policy(
     state: State<'_, AppState>,
     thread_id: String,
@@ -1726,6 +2180,10 @@ async fn validate_reasoning_effort(
                     .find(|option| option.reasoning_effort == requested_effort)
                 {
                     return Ok(option.reasoning_effort.clone());
+                }
+
+                if engine_id == "opencode" && model.supported_reasoning_efforts.is_empty() {
+                    return Ok(requested_effort.to_string());
                 }
 
                 let supported = model
@@ -3168,6 +3626,23 @@ mod tests {
     }
 
     #[test]
+    fn build_opencode_remote_session_title_uses_cwd_when_title_is_missing() {
+        let summary = OpenCodeRemoteSessionSummary {
+            engine_thread_id: "ses_12345678".to_string(),
+            title: None,
+            cwd: "/workspace/project-alpha".to_string(),
+            created_at: 1_777_155_663_506,
+            updated_at: 1_777_155_663_524,
+            archived: false,
+        };
+
+        assert_eq!(
+            build_opencode_remote_session_title(&summary),
+            "OpenCode · project-alpha · ses_1234"
+        );
+    }
+
+    #[test]
     fn clone_codex_branch_metadata_marks_local_transcript_as_imported() {
         let metadata = clone_codex_branch_metadata(
             Some(&json!({
@@ -3318,13 +3793,16 @@ mod tests {
             "codex".to_string(),
             "gpt-5.4".to_string(),
             "Thread".to_string(),
-            Some("turbo".to_string()),
+            Some("max".to_string()),
             None,
         )
         .await
         .expect_err("expected invalid effort to be rejected");
 
-        assert!(error.contains("invalid reasoning effort `turbo`"));
+        assert!(
+            error.contains("reasoning effort `max` is not supported"),
+            "unexpected error: {error}"
+        );
     }
 
     #[tokio::test]

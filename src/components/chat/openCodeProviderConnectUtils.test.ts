@@ -3,6 +3,7 @@ import {
   buildCustomProviderConfigPatch,
   buildProviderCatalog,
   isOpenCodeServerApiUnsupported,
+  removeCustomProviderConfigPatch,
 } from "./openCodeProviderConnectUtils";
 import type { EngineModel } from "../../types";
 
@@ -64,6 +65,9 @@ describe("buildProviderCatalog", () => {
       providerId: "anthropic",
       providerLabel: "Anthropic",
       connected: true,
+      envKeys: ["ANTHROPIC_API_KEY"],
+      source: null,
+      defaultModelId: null,
       authMethods: [
         { type: "api", label: "API key", index: 0 },
         { type: "oauth", label: "OAuth", index: 1 },
@@ -74,6 +78,69 @@ describe("buildProviderCatalog", () => {
       providerId: "openai",
       connected: false,
       authMethods: [],
+    });
+  });
+
+  it("synthesizes an API-key auth method when the provider exposes env keys but no auth schema", () => {
+    const catalog = buildProviderCatalog(
+      {
+        all: [
+          {
+            id: "xiaomi-token-plan-ams",
+            name: "Xiaomi Token Plan (Europe)",
+            env: ["XIAOMI_API_KEY"],
+            models: {
+              "mimo-v2-5": { id: "mimo-v2-5", name: "MiMo-V2.5" },
+            },
+          },
+        ],
+        connected: [],
+        default: {},
+      },
+      {},
+      [],
+    );
+
+    expect(catalog).toHaveLength(1);
+    expect(catalog[0]).toMatchObject({
+      providerId: "xiaomi-token-plan-ams",
+      envKeys: ["XIAOMI_API_KEY"],
+      source: null,
+      defaultModelId: null,
+      authMethods: [{ type: "api", label: "XIAOMI_API_KEY", index: 0 }],
+    });
+  });
+
+  it("preserves provider source and default model metadata from the runtime", () => {
+    const catalog = buildProviderCatalog(
+      {
+        all: [
+          {
+            id: "openai",
+            name: "OpenAI",
+            source: "config",
+            env: ["OPENAI_API_KEY"],
+            models: {
+              "gpt-5": { id: "gpt-5", name: "GPT-5" },
+            },
+          },
+        ],
+        connected: ["openai"],
+        default: {
+          openai: "gpt-5",
+        },
+      },
+      {
+        openai: [{ type: "api", label: "API key" }],
+      },
+      [],
+    );
+
+    expect(catalog[0]).toMatchObject({
+      providerId: "openai",
+      source: "config",
+      defaultModelId: "gpt-5",
+      connected: true,
     });
   });
 });
@@ -119,6 +186,28 @@ describe("buildCustomProviderConfigPatch", () => {
           },
         },
       },
+    });
+  });
+});
+
+describe("removeCustomProviderConfigPatch", () => {
+  it("removes only the requested provider entry", () => {
+    const patch = removeCustomProviderConfigPatch(
+      {
+        provider: {
+          anthropic: { npm: "@ai-sdk/anthropic" },
+          custom: { npm: "@ai-sdk/openai-compatible" },
+        },
+        model: "anthropic/claude-sonnet-4-5",
+      },
+      "custom",
+    );
+
+    expect(patch).toEqual({
+      provider: {
+        anthropic: { npm: "@ai-sdk/anthropic" },
+      },
+      model: "anthropic/claude-sonnet-4-5",
     });
   });
 });

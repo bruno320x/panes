@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { useEngineStore } from "../../stores/engineStore";
 import { getHarnessIcon } from "../shared/HarnessLogos";
 import type { EngineHealth, EngineInfo, EngineModel } from "../../types";
-
-/* ── Props ── */
+import { OpenCodeProviderConnectModal } from "./OpenCodeProviderConnectModal";
+import { reasoningOptionsForModel } from "./reasoningEffort";
 
 interface ModelPickerProps {
   engines: EngineInfo[];
@@ -46,17 +46,18 @@ const PROVIDER_LABELS: Record<string, string> = {
   vertex: "Vertex",
 };
 
+const MODEL_TOKEN_LABELS: Record<string, string> = {
+  gpt: "GPT",
+  codex: "Codex",
+  opencode: "OpenCode",
+  claude: "Claude",
+  opus: "Opus",
+  sonnet: "Sonnet",
+  haiku: "Haiku",
+  mini: "Mini",
+};
+
 function formatModelName(name: string): string {
-  const tokens: Record<string, string> = {
-    gpt: "GPT",
-    codex: "Codex",
-    opencode: "OpenCode",
-    claude: "Claude",
-    opus: "Opus",
-    sonnet: "Sonnet",
-    haiku: "Haiku",
-    mini: "Mini",
-  };
   const slashParts = name
     .split("/")
     .filter(Boolean)
@@ -74,12 +75,12 @@ function formatModelName(name: string): string {
       part
         .split(/[-_\s]+/)
         .filter(Boolean)
-        .map((s) => {
-          const lower = s.toLowerCase();
-          if (tokens[lower]) return tokens[lower];
-          if (/^\d+(\.\d+)*$/.test(s)) return s;
-          if (/^[a-z]?\d+(\.\d+)*$/i.test(s)) return s.toUpperCase();
-          return s.charAt(0).toUpperCase() + s.slice(1);
+        .map((segment) => {
+          const lower = segment.toLowerCase();
+          if (MODEL_TOKEN_LABELS[lower]) return MODEL_TOKEN_LABELS[lower];
+          if (/^\d+(\.\d+)*$/.test(segment)) return segment;
+          if (/^[a-z]?\d+(\.\d+)*$/i.test(segment)) return segment.toUpperCase();
+          return segment.charAt(0).toUpperCase() + segment.slice(1);
         })
         .join(" "),
     )
@@ -136,7 +137,6 @@ export function groupOpenCodeModels(models: EngineModel[]): OpenCodeProviderMode
       group.activeModels.push(model);
     }
   }
-
   return Array.from(groups.values());
 }
 
@@ -185,11 +185,11 @@ interface ModelMetadataChip {
 export function modelMetadataChips(
   t: TFunction<"chat">,
   model: EngineModel,
+  engineId?: string,
 ): ModelMetadataChip[] {
   const chips: ModelMetadataChip[] = [];
-  const attachmentModalities = new Set(
-    (model.attachmentModalities ?? []).map((modality) => modality.toLowerCase()),
-  );
+  const attachmentModalities = new Set((model.attachmentModalities ?? []).map((modality) => modality.toLowerCase()));
+  const attachmentMetadataMissing = (model.attachmentModalities ?? []).length === 0;
 
   if (attachmentModalities.has("image")) {
     chips.push({ label: t("modelPicker.metadata.vision") });
@@ -199,7 +199,12 @@ export function modelMetadataChips(
   }
   if (attachmentModalities.has("text")) {
     chips.push({ label: t("modelPicker.metadata.files") });
-  } else if ((model.attachmentModalities ?? []).length === 0) {
+  } else if (attachmentMetadataMissing && engineId === "opencode") {
+    chips.push({
+      label: t("modelPicker.metadata.files"),
+      title: "OpenCode did not report attachment metadata for this model; file support is handled by the OpenCode runtime.",
+    });
+  } else if (attachmentMetadataMissing) {
     chips.push({ label: t("modelPicker.metadata.noFiles") });
   }
 
@@ -272,6 +277,7 @@ export function ModelPicker({
 }: ModelPickerProps) {
   const { t } = useTranslation("chat");
   const [open, setOpen] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
   const [activeEngineId, setActiveEngineId] = useState(selectedEngineId);
   const [activeOpenCodeProviderId, setActiveOpenCodeProviderId] = useState<string | null>(null);
   const [openCodeModelQuery, setOpenCodeModelQuery] = useState("");
@@ -281,6 +287,7 @@ export function ModelPicker({
   const wasOpenRef = useRef(false);
   const [pos, setPos] = useState({ bottom: 0, left: 0 });
   const ensureEngineHealth = useEngineStore((state) => state.ensureHealth);
+  const reloadEngines = useEngineStore((state) => state.load);
 
   // Sync active engine when selection changes externally
   useEffect(() => {
@@ -399,6 +406,14 @@ export function ModelPicker({
     });
   }, [activeEngineId, openCodeProviderGroups, selectedOpenCodeProviderId]);
 
+  async function refreshOpenCodeCatalog() {
+    await reloadEngines();
+    await ensureEngineHealth("opencode", { force: true });
+    setActiveEngineId("opencode");
+    setOpenCodeModelQuery("");
+    setLegacyExpanded(false);
+  }
+
   function handleModelSelect(engineId: string, modelId: string) {
     onEngineModelChange(engineId, modelId);
     // Keep popover open so the user can adjust reasoning effort
@@ -470,7 +485,17 @@ export function ModelPicker({
     return (
       <div className="mp-provider-tree">
         <div className="mp-provider-list">
-          <div className="mp-provider-list-heading">{t("modelPicker.providers")}</div>
+          <div className="mp-provider-list-heading">
+            <span>{t("modelPicker.providers")}</span>
+            <button
+              type="button"
+              className="mp-add-provider-btn"
+              onClick={() => setConnectOpen(true)}
+              title={t("modelPicker.addProvider")}
+            >
+              <Plus size={12} />
+            </button>
+          </div>
           {openCodeProviderGroups.map((group) => {
             const isActive = group.providerId === provider?.providerId;
             const isSelected = group.providerId === selectedOpenCodeProviderId;
@@ -587,13 +612,10 @@ export function ModelPicker({
         {getHarnessIcon(selectedEngineId, 12)}
       </span>
       <span className="mp-trigger-label">{triggerLabel}</span>
-      {selectedEffort && currentModel?.supportedReasoningEfforts?.length ? (
+      {selectedEffort && reasoningOptionsForModel(currentModel, currentEngine?.id).length > 0 ? (
         <span className="mp-trigger-effort">{shortEffortLabel(t, selectedEffort)}</span>
       ) : null}
-      <ChevronDown
-        size={10}
-        className={`mp-trigger-chevron${open ? " mp-trigger-chevron-open" : ""}`}
-      />
+      <ChevronDown size={10} className={`mp-trigger-chevron${open ? " mp-trigger-chevron-open" : ""}`} />
     </button>
   );
 
@@ -657,6 +679,12 @@ export function ModelPicker({
     <div className="mp-root">
       {trigger}
       {popover}
+      <OpenCodeProviderConnectModal
+        open={connectOpen}
+        models={browsingModels}
+        onClose={() => setConnectOpen(false)}
+        onRefresh={refreshOpenCodeCatalog}
+      />
     </div>
   );
 }
@@ -679,9 +707,9 @@ function ModelRow({
   onEffortChange: (effort: string) => void;
 }) {
   const { t } = useTranslation("chat");
-  const efforts = model.supportedReasoningEfforts ?? [];
+  const efforts = reasoningOptionsForModel(model, engineId);
   const showControls = efforts.length > 0;
-  const metadataChips = modelMetadataChips(t, model);
+  const metadataChips = modelMetadataChips(t, model, engineId);
   const showMetadataChips = isSelected;
   const showDescription = shouldShowModelDescription(engineId, model);
   const modelClassName = [

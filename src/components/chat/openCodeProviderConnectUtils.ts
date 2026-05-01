@@ -11,6 +11,9 @@ export interface ProviderGroup {
   models: EngineModel[];
   connected: boolean;
   authMethods: Array<OpenCodeProviderAuthMethod & { index: number }>;
+  envKeys: string[];
+  source: string | null;
+  defaultModelId: string | null;
 }
 
 export interface CustomProviderConfigInput {
@@ -62,17 +65,120 @@ function syntheticModel(providerId: string, modelId: string, displayName: string
   };
 }
 
+function normalizeAuthType(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized.includes("oauth") || normalized.includes("browser")) {
+    return "oauth";
+  }
+  if (
+    normalized.includes("api") ||
+    normalized.includes("token") ||
+    normalized.includes("key") ||
+    normalized.includes("secret")
+  ) {
+    return "api";
+  }
+  return normalized;
+}
+
+function normalizeAuthMethodRecord(
+  raw: unknown,
+): OpenCodeProviderAuthMethod | null {
+  if (typeof raw === "string") {
+    const type = normalizeAuthType(raw) ?? "api";
+    return {
+      type,
+      label: titleCase(raw),
+    };
+  }
+
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+
+  const record = raw as Record<string, unknown>;
+  const type =
+    normalizeAuthType(record.type) ??
+    normalizeAuthType(record.kind) ??
+    normalizeAuthType(record.method) ??
+    normalizeAuthType(record.authType) ??
+    "api";
+  const label =
+    typeof record.label === "string" && record.label.trim()
+      ? record.label.trim()
+      : typeof record.name === "string" && record.name.trim()
+        ? record.name.trim()
+        : titleCase(`${type} auth`);
+
+  return { type, label };
+}
+
+function authEntriesForProvider(
+  providerId: string,
+  authMap?: OpenCodeProviderAuthResponse | null,
+): unknown[] {
+  const raw = authMap?.[providerId];
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+
+  if (!raw || typeof raw !== "object") {
+    return [];
+  }
+
+  const record = raw as Record<string, unknown>;
+  for (const key of ["methods", "auth", "items", "options"]) {
+    const nested = record[key];
+    if (Array.isArray(nested)) {
+      return nested;
+    }
+  }
+
+  return [];
+}
+
+function dedupeAuthMethods(
+  methods: OpenCodeProviderAuthMethod[],
+): Array<OpenCodeProviderAuthMethod & { index: number }> {
+  const seen = new Set<string>();
+  return methods
+    .filter((method) => {
+      const key = `${method.type}::${method.label}`.toLowerCase();
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .map((method, index) => ({
+      ...method,
+      index,
+    }));
+}
+
 function normalizeAuthMethods(
   providerId: string,
   authMap?: OpenCodeProviderAuthResponse | null,
+  envKeys: string[] = [],
 ): Array<OpenCodeProviderAuthMethod & { index: number }> {
-  const raw = authMap?.[providerId] ?? [];
-  return raw
-    .map((method, index) => ({
-      index,
-      type: typeof method?.type === "string" ? method.type : "api",
-      label: typeof method?.label === "string" && method.label.trim() ? method.label : titleCase(`${method?.type ?? "api"} auth`),
-    }));
+  const normalized = authEntriesForProvider(providerId, authMap)
+    .map((method) => normalizeAuthMethodRecord(method))
+    .filter((method): method is OpenCodeProviderAuthMethod => method !== null);
+
+  if (normalized.length === 0 && envKeys.length > 0) {
+    normalized.push({
+      type: "api",
+      label: envKeys.length === 1 ? envKeys[0] : "API key",
+    });
+  }
+
+  return dedupeAuthMethods(normalized);
 }
 
 export function buildProviderCatalog(
@@ -90,10 +196,14 @@ export function buildProviderCatalog(
       models: [...(groups.get(providerId)?.models ?? []), model],
       connected: false,
       authMethods: [],
+      envKeys: groups.get(providerId)?.envKeys ?? [],
+      source: groups.get(providerId)?.source ?? null,
+      defaultModelId: groups.get(providerId)?.defaultModelId ?? null,
     });
   }
 
   const connected = new Set((providerList?.connected ?? []).map((value) => value.trim().toLowerCase()));
+  const providerDefaults = providerList?.default ?? {};
   for (const provider of providerList?.all ?? []) {
     const providerId = normalizeProviderId(provider.id ?? "");
     if (!providerId) continue;
@@ -103,12 +213,21 @@ export function buildProviderCatalog(
       : Object.values(provider.models ?? {}).map((model) =>
           syntheticModel(providerId, model.id, model.name),
         );
+    const envKeys = Array.isArray(provider.env)
+      ? provider.env.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
     groups.set(providerId, {
       providerId,
       providerLabel: provider.name?.trim() || existing?.providerLabel || titleCase(providerId),
       models: mergedModels,
       connected: connected.has(providerId),
-      authMethods: normalizeAuthMethods(providerId, authMap),
+      authMethods: normalizeAuthMethods(providerId, authMap, envKeys),
+      envKeys,
+      source: typeof provider.source === "string" && provider.source.trim() ? provider.source.trim() : existing?.source ?? null,
+      defaultModelId:
+        typeof providerDefaults[providerId] === "string" && providerDefaults[providerId]?.trim()
+          ? providerDefaults[providerId].trim()
+          : existing?.defaultModelId ?? null,
     });
   }
 
@@ -117,7 +236,7 @@ export function buildProviderCatalog(
     groups.set(providerId, {
       ...group,
       connected: connected.has(providerId),
-      authMethods: normalizeAuthMethods(providerId, authMap),
+      authMethods: normalizeAuthMethods(providerId, authMap, group.envKeys),
     });
   }
 
@@ -146,6 +265,23 @@ export function buildCustomProviderConfigPatch(
       input.models.map((modelId) => [modelId, { name: modelId }]),
     ),
   };
+
+  return {
+    ...currentConfig,
+    provider: providerMap,
+  };
+}
+
+export function removeCustomProviderConfigPatch(
+  currentConfig: Record<string, unknown>,
+  providerId: string,
+): Record<string, unknown> {
+  const providerMap =
+    typeof currentConfig.provider === "object" && currentConfig.provider !== null && !Array.isArray(currentConfig.provider)
+      ? { ...(currentConfig.provider as Record<string, unknown>) }
+      : {};
+
+  delete providerMap[providerId];
 
   return {
     ...currentConfig,

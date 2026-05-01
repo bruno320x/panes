@@ -50,3 +50,13 @@ export function resolveReasoningEffortForModel(
 
   return normalizedDefault;
 }
+
+export function reasoningOptionsForModel(
+  model: Pick<EngineModel, "supportedReasoningEfforts"> | null | undefined,
+  _engineId?: string | null,
+) {
+  if (model?.supportedReasoningEfforts?.length) {
+    return model.supportedReasoningEfforts;
+  }
+  return [];
+}
