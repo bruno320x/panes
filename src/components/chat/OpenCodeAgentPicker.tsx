@@ -7,6 +7,7 @@ import type { OpenCodeAgent } from "../../types";
 interface OpenCodeAgentPickerProps {
   agents: OpenCodeAgent[];
   selectedAgent: string;
+  defaultAgent?: string;
   onAgentChange: (agent: string) => void;
   disabled?: boolean;
 }
@@ -49,6 +50,7 @@ function formatAgentLabel(name: string): string {
 export function OpenCodeAgentPicker({
   agents,
   selectedAgent,
+  defaultAgent = "build",
   onAgentChange,
   disabled = false,
 }: OpenCodeAgentPickerProps) {
@@ -133,6 +135,11 @@ export function OpenCodeAgentPicker({
                     agent.modelProviderId && agent.modelId
                       ? `${agent.modelProviderId}/${agent.modelId}`
                       : null;
+                  const variantLabel =
+                    typeof agent.variant === "string" && agent.variant.trim()
+                      ? agent.variant.trim()
+                      : null;
+                  const isDefaultAgent = agent.name === defaultAgent;
                   return (
                     <button
                       key={agent.name}
@@ -147,11 +154,17 @@ export function OpenCodeAgentPicker({
                         <span className="oc-agent-option-name">
                           {formatAgentLabel(agent.name)}
                         </span>
+                        {isDefaultAgent ? (
+                          <span className="oc-agent-option-meta">Default agent</span>
+                        ) : null}
                         {agent.description ? (
                           <span className="oc-agent-option-detail">{agent.description}</span>
                         ) : null}
                         {modelLabel ? (
                           <span className="oc-agent-option-meta">{modelLabel}</span>
+                        ) : null}
+                        {variantLabel ? (
+                          <span className="oc-agent-option-meta">Variant: {variantLabel}</span>
                         ) : null}
                       </span>
                       {active ? <Check size={13} className="oc-agent-option-check" /> : null}

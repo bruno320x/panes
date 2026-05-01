@@ -203,6 +203,50 @@ export interface OpenCodeRemoteSessionPage {
   nextCursor?: string | null;
 }
 
+export interface OpenCodeFileDiff {
+  file: string;
+  before: string;
+  after: string;
+  additions: number;
+  deletions: number;
+  status?: string | null;
+}
+
+export interface OpenCodeTodo {
+  content: string;
+  status: string;
+  priority: string;
+}
+
+export interface OpenCodeSessionSummary {
+  additions: number;
+  deletions: number;
+  files: number;
+  diffs: OpenCodeFileDiff[];
+}
+
+export interface OpenCodeSessionRevertState {
+  messageId: string;
+  partId?: string | null;
+  snapshot?: string | null;
+  diff?: string | null;
+}
+
+export interface OpenCodeRemoteSessionDetail {
+  engineThreadId: string;
+  title?: string | null;
+  cwd: string;
+  createdAt: string;
+  updatedAt: string;
+  archived: boolean;
+  slug?: string | null;
+  parentThreadId?: string | null;
+  version?: string | null;
+  shareUrl?: string | null;
+  summary?: OpenCodeSessionSummary | null;
+  revert?: OpenCodeSessionRevertState | null;
+}
+
 export type CodexReviewDelivery = "inline" | "detached";
 
 export type CodexReviewTarget =
@@ -543,6 +587,7 @@ export interface OpenCodeRuntimeCatalog {
   agents: OpenCodeAgent[];
   commands: OpenCodeCommand[];
   mcpServers: OpenCodeMcpServer[];
+  defaultAgent?: string | null;
 }
 
 export interface OpenCodeProviderAuthMethod {
@@ -560,7 +605,10 @@ export interface OpenCodeProviderApiModel {
 export interface OpenCodeProviderApiItem {
   id: string;
   name: string;
+  source?: string;
   env?: string[];
+  key?: string;
+  options?: Record<string, unknown>;
   models?: Record<string, OpenCodeProviderApiModel>;
   [key: string]: unknown;
 }
@@ -572,7 +620,7 @@ export interface OpenCodeProviderListResponse {
   [key: string]: unknown;
 }
 
-export type OpenCodeProviderAuthResponse = Record<string, OpenCodeProviderAuthMethod[]>;
+export type OpenCodeProviderAuthResponse = Record<string, unknown>;
 
 export interface OpenCodeAgent {
   name: string;

@@ -34,8 +34,10 @@ use crate::{process_utils, runtime_env};
 use super::{
     normalize_approval_response_for_engine, trim_action_output_delta_content, ActionResult,
     ActionType, ApprovalRequestRoute, DiffScope, Engine, EngineEvent, EngineThread, ModelInfo,
-    ModelLimits, OpenCodeRemoteSessionSummary, OutputStream, ReasoningEffortOption, SandboxPolicy,
-    ThreadScope, TokenUsage, TurnCompletionStatus, TurnInput,
+    ModelLimits, OpenCodeFileDiffSummary, OpenCodeRemoteSessionDetail,
+    OpenCodeRemoteSessionSummary, OpenCodeSessionRevertState, OpenCodeSessionSummaryStats,
+    OpenCodeTodoSummary, OutputStream, ReasoningEffortOption, SandboxPolicy, ThreadScope,
+    TokenUsage, TurnCompletionStatus, TurnInput,
 };
 
 const OPENCODE_STARTUP_TIMEOUT: Duration = Duration::from_secs(8);
@@ -139,10 +141,41 @@ struct OpenCodeSessionInfo {
 #[serde(rename_all = "camelCase")]
 struct OpenCodeSessionRecord {
     id: String,
+    slug: Option<String>,
+    #[serde(rename = "parentID")]
+    parent_id: Option<String>,
+    version: Option<String>,
     title: Option<String>,
     directory: String,
     permission: Option<Value>,
+    summary: Option<OpenCodeSessionSummaryRecord>,
+    share: Option<OpenCodeSessionShareRecord>,
+    revert: Option<OpenCodeSessionRevertRecord>,
     time: OpenCodeSessionTime,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct OpenCodeSessionSummaryRecord {
+    additions: i64,
+    deletions: i64,
+    files: i64,
+    #[serde(default)]
+    diffs: Vec<OpenCodeFileDiffRecord>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct OpenCodeSessionShareRecord {
+    url: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct OpenCodeSessionRevertRecord {
+    #[serde(rename = "messageID")]
+    message_id: String,
+    #[serde(rename = "partID")]
+    part_id: Option<String>,
+    snapshot: Option<String>,
+    diff: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -184,7 +217,12 @@ struct OpenCodeRuntimeCommand {
     hints: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
+struct OpenCodeRuntimeConfig {
+    default_agent: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct OpenCodeProviderList {
     all: Vec<OpenCodeProvider>,
     connected: Vec<String>,
@@ -192,14 +230,31 @@ struct OpenCodeProviderList {
     default: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct OpenCodeConfigProviderList {
+    #[serde(default)]
+    providers: Vec<OpenCodeProvider>,
+    #[serde(default)]
+    default: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct OpenCodeProvider {
     id: String,
     name: String,
+    #[serde(default)]
+    source: Option<String>,
+    #[serde(default)]
+    env: Vec<String>,
+    #[serde(default)]
+    key: Option<String>,
+    #[serde(default)]
+    options: HashMap<String, Value>,
+    #[serde(default)]
     models: HashMap<String, OpenCodeProviderModel>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct OpenCodeProviderModel {
     id: String,
     name: String,
@@ -208,6 +263,23 @@ struct OpenCodeProviderModel {
     capabilities: Option<OpenCodeModelCapabilities>,
     #[serde(default)]
     variants: HashMap<String, Value>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct OpenCodeFileDiffRecord {
+    file: String,
+    before: String,
+    after: String,
+    additions: i64,
+    deletions: i64,
+    status: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct OpenCodeTodoRecord {
+    content: String,
+    status: String,
+    priority: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -223,21 +295,21 @@ struct OpenCodeVerboseModel {
     variants: HashMap<String, Value>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct OpenCodeModelCapabilities {
     #[serde(default)]
     attachment: bool,
     input: Option<OpenCodeModelInputCapabilities>,
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct OpenCodeModelLimit {
     context: Option<u64>,
     input: Option<u64>,
     output: Option<u64>,
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct OpenCodeModelInputCapabilities {
     #[serde(default)]
     text: bool,
@@ -1103,6 +1175,17 @@ impl OpenCodeEngine {
     pub async fn runtime_catalog(&self, cwd: &str) -> Result<OpenCodeRuntimeCatalogDto> {
         let server = self.ensure_server(cwd).await?;
         let result = async {
+            let config = self
+                .request(server.as_ref(), reqwest::Method::GET, "/config")
+                .query(&[("directory", cwd)])
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to read OpenCode config")?
+                .json::<OpenCodeRuntimeConfig>()
+                .await
+                .context("failed to parse OpenCode config")?;
+
             let agents = self
                 .request(server.as_ref(), reqwest::Method::GET, "/agent")
                 .send()
@@ -1137,6 +1220,7 @@ impl OpenCodeEngine {
                 agents: map_runtime_agents(agents),
                 commands: map_runtime_commands(commands),
                 mcp_servers: map_runtime_mcp_servers(mcp),
+                default_agent: normalize_opencode_agent(config.default_agent.as_deref()),
             })
         }
         .await;
@@ -1145,14 +1229,78 @@ impl OpenCodeEngine {
     }
 
     pub async fn list_providers(&self, cwd: &str) -> Result<Value> {
-        self.request_runtime_json(
-            cwd,
-            reqwest::Method::GET,
-            "/provider",
-            None,
-            "list OpenCode providers",
-        )
-        .await
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let mut providers = self
+                .request(server.as_ref(), reqwest::Method::GET, "/provider")
+                .query(&[("directory", cwd)])
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to list OpenCode providers")?
+                .json::<OpenCodeProviderList>()
+                .await
+                .context("failed to parse OpenCode providers")?;
+
+            let configured = self
+                .request(server.as_ref(), reqwest::Method::GET, "/config/providers")
+                .query(&[("directory", cwd)])
+                .send()
+                .await;
+
+            if let Ok(response) = configured {
+                if let Ok(response) = response.error_for_status() {
+                    if let Ok(configured) = response.json::<OpenCodeConfigProviderList>().await {
+                        let mut by_id = providers
+                            .all
+                            .into_iter()
+                            .map(|provider| (provider.id.clone(), provider))
+                            .collect::<HashMap<_, _>>();
+                        for configured_provider in configured.providers {
+                            match by_id.get_mut(&configured_provider.id) {
+                                Some(existing) => {
+                                    if existing.name.trim().is_empty() {
+                                        existing.name = configured_provider.name.clone();
+                                    }
+                                    if existing.env.is_empty() {
+                                        existing.env = configured_provider.env.clone();
+                                    }
+                                    if existing.source.is_none() {
+                                        existing.source = configured_provider.source.clone();
+                                    }
+                                    if existing.key.is_none() {
+                                        existing.key = configured_provider.key.clone();
+                                    }
+                                    if existing.options.is_empty() {
+                                        existing.options = configured_provider.options.clone();
+                                    }
+                                    if existing.models.is_empty() {
+                                        existing.models = configured_provider.models.clone();
+                                    }
+                                }
+                                None => {
+                                    by_id.insert(
+                                        configured_provider.id.clone(),
+                                        configured_provider,
+                                    );
+                                }
+                            }
+                        }
+                        providers.all = by_id.into_values().collect();
+                        if providers.default.is_empty() {
+                            providers.default = configured.default;
+                        } else {
+                            providers.default.extend(configured.default);
+                        }
+                    }
+                }
+            }
+
+            serde_json::to_value(&providers).context("failed to serialize OpenCode providers")
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
     }
 
     pub async fn list_provider_auth(&self, cwd: &str) -> Result<Value> {
@@ -1182,6 +1330,17 @@ impl OpenCodeEngine {
         .await
     }
 
+    pub async fn delete_provider_auth(&self, cwd: &str, provider_id: &str) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::DELETE,
+            &format!("/auth/{provider_id}"),
+            None,
+            "remove OpenCode provider credentials",
+        )
+        .await
+    }
+
     pub async fn authorize_provider_oauth(
         &self,
         cwd: &str,
@@ -1198,12 +1357,7 @@ impl OpenCodeEngine {
         .await
     }
 
-    pub async fn oauth_callback(
-        &self,
-        cwd: &str,
-        provider_id: &str,
-        body: Value,
-    ) -> Result<Value> {
+    pub async fn oauth_callback(&self, cwd: &str, provider_id: &str, body: Value) -> Result<Value> {
         self.request_runtime_json(
             cwd,
             reqwest::Method::POST,
@@ -1335,6 +1489,333 @@ impl OpenCodeEngine {
                 self.stop_server_if_unused(&session.cwd).await;
             }
         }
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn rename_session(&self, cwd: &str, session_id: &str, title: &str) -> Result<()> {
+        let server = self.ensure_server(cwd).await?;
+        let result = self
+            .patch_session_title(server.as_ref(), session_id, title)
+            .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn delete_session(&self, cwd: &str, session_id: &str) -> Result<()> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            self.request(
+                server.as_ref(),
+                reqwest::Method::DELETE,
+                &format!("/session/{session_id}"),
+            )
+            .query(&[("directory", cwd)])
+            .send()
+            .await?
+            .error_for_status()
+            .context("failed to delete OpenCode session")?;
+            Ok(())
+        }
+        .await;
+
+        let removed = self.state.lock().await.sessions.remove(session_id);
+        if let Some(session) = removed {
+            self.stop_server_if_unused(&session.cwd).await;
+        }
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn read_session_detail(
+        &self,
+        cwd: &str,
+        session_id: &str,
+    ) -> Result<OpenCodeRemoteSessionDetail> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let session = self.get_session(server.as_ref(), session_id).await?;
+            Ok(map_session_detail(session))
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn list_session_children(
+        &self,
+        cwd: &str,
+        session_id: &str,
+    ) -> Result<Vec<OpenCodeRemoteSessionSummary>> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let sessions = self
+                .request(
+                    server.as_ref(),
+                    reqwest::Method::GET,
+                    &format!("/session/{session_id}/children"),
+                )
+                .query(&[("directory", cwd)])
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to list OpenCode session children")?
+                .json::<Vec<OpenCodeSessionRecord>>()
+                .await
+                .context("failed to parse OpenCode session children")?;
+            Ok(sessions.into_iter().map(map_session_record).collect())
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn get_session_todos(
+        &self,
+        cwd: &str,
+        session_id: &str,
+    ) -> Result<Vec<OpenCodeTodoSummary>> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let todos = self
+                .request(
+                    server.as_ref(),
+                    reqwest::Method::GET,
+                    &format!("/session/{session_id}/todo"),
+                )
+                .query(&[("directory", cwd)])
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to read OpenCode session todos")?
+                .json::<Vec<OpenCodeTodoRecord>>()
+                .await
+                .context("failed to parse OpenCode session todos")?;
+            Ok(todos.into_iter().map(map_todo_record).collect())
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn get_session_diff(
+        &self,
+        cwd: &str,
+        session_id: &str,
+        message_id: Option<&str>,
+    ) -> Result<Vec<OpenCodeFileDiffSummary>> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let mut request = self.request(
+                server.as_ref(),
+                reqwest::Method::GET,
+                &format!("/session/{session_id}/diff"),
+            );
+            request = request.query(&[("directory", cwd)]);
+            if let Some(message_id) = message_id.map(str::trim).filter(|value| !value.is_empty()) {
+                request = request.query(&[("messageID", message_id)]);
+            }
+            let diffs = request
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to read OpenCode session diff")?
+                .json::<Vec<OpenCodeFileDiffRecord>>()
+                .await
+                .context("failed to parse OpenCode session diff")?;
+            Ok(diffs.into_iter().map(map_file_diff_record).collect())
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn share_session(
+        &self,
+        cwd: &str,
+        session_id: &str,
+    ) -> Result<OpenCodeRemoteSessionDetail> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let session = self
+                .request(
+                    server.as_ref(),
+                    reqwest::Method::POST,
+                    &format!("/session/{session_id}/share"),
+                )
+                .query(&[("directory", cwd)])
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to share OpenCode session")?
+                .json::<OpenCodeSessionRecord>()
+                .await
+                .context("failed to parse shared OpenCode session")?;
+            Ok(map_session_detail(session))
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn unshare_session(
+        &self,
+        cwd: &str,
+        session_id: &str,
+    ) -> Result<OpenCodeRemoteSessionDetail> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let session = self
+                .request(
+                    server.as_ref(),
+                    reqwest::Method::DELETE,
+                    &format!("/session/{session_id}/share"),
+                )
+                .query(&[("directory", cwd)])
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to unshare OpenCode session")?
+                .json::<OpenCodeSessionRecord>()
+                .await
+                .context("failed to parse unshared OpenCode session")?;
+            Ok(map_session_detail(session))
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn summarize_session(
+        &self,
+        cwd: &str,
+        session_id: &str,
+        model_id: &str,
+        auto: Option<bool>,
+    ) -> Result<bool> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let model = parse_model_slug(model_id).with_context(|| {
+                format!("OpenCode model `{model_id}` must use provider/model format")
+            })?;
+            let mut body = json!({
+                "providerID": model.provider_id,
+                "modelID": model.model_id,
+            });
+            if let Some(auto) = auto {
+                body["auto"] = json!(auto);
+            }
+            self.request(
+                server.as_ref(),
+                reqwest::Method::POST,
+                &format!("/session/{session_id}/summarize"),
+            )
+            .query(&[("directory", cwd)])
+            .json(&body)
+            .send()
+            .await?
+            .error_for_status()
+            .context("failed to summarize OpenCode session")?
+            .json::<bool>()
+            .await
+            .context("failed to parse OpenCode session summarize response")
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn fork_session(
+        &self,
+        cwd: &str,
+        session_id: &str,
+        message_id: Option<&str>,
+    ) -> Result<OpenCodeRemoteSessionDetail> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let mut request = self.request(
+                server.as_ref(),
+                reqwest::Method::POST,
+                &format!("/session/{session_id}/fork"),
+            );
+            request = request.query(&[("directory", cwd)]);
+            if let Some(message_id) = message_id.map(str::trim).filter(|value| !value.is_empty()) {
+                request = request.json(&json!({ "messageID": message_id }));
+            }
+            let session = request
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to fork OpenCode session")?
+                .json::<OpenCodeSessionRecord>()
+                .await
+                .context("failed to parse forked OpenCode session")?;
+            Ok(map_session_detail(session))
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn revert_session(
+        &self,
+        cwd: &str,
+        session_id: &str,
+        message_id: &str,
+        part_id: Option<&str>,
+    ) -> Result<OpenCodeRemoteSessionDetail> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let mut body = json!({ "messageID": message_id });
+            if let Some(part_id) = part_id.map(str::trim).filter(|value| !value.is_empty()) {
+                body["partID"] = json!(part_id);
+            }
+            let session = self
+                .request(
+                    server.as_ref(),
+                    reqwest::Method::POST,
+                    &format!("/session/{session_id}/revert"),
+                )
+                .query(&[("directory", cwd)])
+                .json(&body)
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to revert OpenCode session")?
+                .json::<OpenCodeSessionRecord>()
+                .await
+                .context("failed to parse reverted OpenCode session")?;
+            Ok(map_session_detail(session))
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
+    }
+
+    pub async fn unrevert_session(
+        &self,
+        cwd: &str,
+        session_id: &str,
+    ) -> Result<OpenCodeRemoteSessionDetail> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let session = self
+                .request(
+                    server.as_ref(),
+                    reqwest::Method::POST,
+                    &format!("/session/{session_id}/unrevert"),
+                )
+                .query(&[("directory", cwd)])
+                .send()
+                .await?
+                .error_for_status()
+                .context("failed to unrevert OpenCode session")?
+                .json::<OpenCodeSessionRecord>()
+                .await
+                .context("failed to parse unreverted OpenCode session")?;
+            Ok(map_session_detail(session))
+        }
+        .await;
         self.stop_server_if_unused(cwd).await;
         result
     }
@@ -1518,6 +1999,27 @@ impl OpenCodeEngine {
         .await?
         .error_for_status()
         .context("failed to update OpenCode session archive state")?;
+        Ok(())
+    }
+
+    async fn patch_session_title(
+        &self,
+        server: &OpenCodeServer,
+        session_id: &str,
+        title: &str,
+    ) -> Result<()> {
+        self.request(
+            server,
+            reqwest::Method::PATCH,
+            &format!("/session/{session_id}"),
+        )
+        .json(&json!({
+            "title": title,
+        }))
+        .send()
+        .await?
+        .error_for_status()
+        .context("failed to update OpenCode session title")?;
         Ok(())
     }
 
@@ -2319,6 +2821,59 @@ fn map_session_record(session: OpenCodeSessionRecord) -> OpenCodeRemoteSessionSu
     }
 }
 
+fn map_session_detail(session: OpenCodeSessionRecord) -> OpenCodeRemoteSessionDetail {
+    OpenCodeRemoteSessionDetail {
+        engine_thread_id: session.id,
+        title: session.title.and_then(|value| {
+            let trimmed = value.trim();
+            (!trimmed.is_empty()).then(|| trimmed.to_string())
+        }),
+        cwd: session.directory,
+        created_at: session.time.created,
+        updated_at: session.time.updated,
+        archived: session.time.archived.unwrap_or(0) > 0,
+        slug: session.slug,
+        parent_thread_id: session.parent_id,
+        version: session.version,
+        share_url: session.share.map(|share| share.url),
+        summary: session.summary.map(|summary| OpenCodeSessionSummaryStats {
+            additions: summary.additions,
+            deletions: summary.deletions,
+            files: summary.files,
+            diffs: summary
+                .diffs
+                .into_iter()
+                .map(map_file_diff_record)
+                .collect(),
+        }),
+        revert: session.revert.map(|revert| OpenCodeSessionRevertState {
+            message_id: revert.message_id,
+            part_id: revert.part_id,
+            snapshot: revert.snapshot,
+            diff: revert.diff,
+        }),
+    }
+}
+
+fn map_file_diff_record(diff: OpenCodeFileDiffRecord) -> OpenCodeFileDiffSummary {
+    OpenCodeFileDiffSummary {
+        file: diff.file,
+        before: diff.before,
+        after: diff.after,
+        additions: diff.additions,
+        deletions: diff.deletions,
+        status: diff.status,
+    }
+}
+
+fn map_todo_record(todo: OpenCodeTodoRecord) -> OpenCodeTodoSummary {
+    OpenCodeTodoSummary {
+        content: todo.content,
+        status: todo.status,
+        priority: todo.priority,
+    }
+}
+
 fn current_unix_time_millis() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -2538,6 +3093,12 @@ async fn start_server(cwd: &str) -> Result<OpenCodeServer> {
         .arg(port.to_string())
         .current_dir(cwd)
         .env("OPENCODE_SERVER_PASSWORD", &password)
+        .env(
+            "HOME",
+            std::env::var("HOME").unwrap_or_else(|_| {
+                std::env::var("USERPROFILE").unwrap_or_else(|_| "".to_string())
+            }),
+        )
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -3512,9 +4073,15 @@ opencode/gpt-5-nano
     fn session_record_maps_archived_zero_as_active() {
         let session = map_session_record(OpenCodeSessionRecord {
             id: "ses_123".to_string(),
+            slug: None,
+            parent_id: None,
+            version: None,
             title: Some("  Existing session  ".to_string()),
             directory: "/workspace".to_string(),
             permission: Some(permission_rules(OpenCodePermissionMode::Ask)),
+            summary: None,
+            share: None,
+            revert: None,
             time: OpenCodeSessionTime {
                 created: 1_777_155_663_506,
                 updated: 1_777_155_663_524,
@@ -3532,12 +4099,18 @@ opencode/gpt-5-nano
     fn session_permission_match_compares_current_rules() {
         let session = OpenCodeSessionRecord {
             id: "ses_123".to_string(),
+            slug: None,
+            parent_id: None,
+            version: None,
             title: None,
             directory: "/workspace".to_string(),
             permission: Some(json!([
                 { "permission": "question", "pattern": "*", "action": "allow" },
                 { "permission": "*", "pattern": "*", "action": "ask" }
             ])),
+            summary: None,
+            share: None,
+            revert: None,
             time: OpenCodeSessionTime {
                 created: 1,
                 updated: 1,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Archive,
   ArrowRightCircle,
   FlaskConical,
   GitBranch,
@@ -9,13 +10,17 @@ import {
   Scissors,
   Search,
   Server,
+  Share2,
   SquareCode,
+  Trash2,
+  Undo2,
   UserCircle,
   X,
   Zap,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ipc } from "../../lib/ipc";
+import { toast } from "../../stores/toastStore";
 import type {
   CodexExperimentalFeature,
   CodexMcpServer,
@@ -24,8 +29,12 @@ import type {
   CodexSkill,
   OpenCodeAgent,
   OpenCodeCommand,
+  OpenCodeFileDiff,
   OpenCodeMcpServer,
   OpenCodeRemoteSession,
+  OpenCodeRemoteSessionDetail,
+  OpenCodeTodo,
+  Thread,
 } from "../../types";
 
 type ReviewTargetMode =
@@ -73,6 +82,7 @@ interface ChatCommandPanelProps {
   workspaceId?: string | null;
   selectedModelId?: string | null;
   onAttachOpenCodeSession?: (session: OpenCodeRemoteSession) => Promise<void>;
+  onOpenThread?: (thread: Thread) => Promise<void>;
   mcpServers?: CodexMcpServer[];
   experimentalFeatures?: CodexExperimentalFeature[];
   onConfirm: (
@@ -97,6 +107,7 @@ export function ChatCommandPanel({
   workspaceId,
   selectedModelId,
   onAttachOpenCodeSession,
+  onOpenThread,
   mcpServers,
   experimentalFeatures,
   onConfirm,
@@ -230,6 +241,7 @@ export function ChatCommandPanel({
           workspaceId={workspaceId}
           selectedModelId={selectedModelId}
           onAttach={onAttachOpenCodeSession}
+          onOpenThread={onOpenThread}
           onDismiss={onDismiss}
           t={t}
         />
@@ -298,6 +310,7 @@ function OpenCodeSessionsPanel({
   workspaceId,
   selectedModelId,
   onAttach,
+  onOpenThread,
   onDismiss,
   t,
 }: {
@@ -306,10 +319,16 @@ function OpenCodeSessionsPanel({
   workspaceId?: string | null;
   selectedModelId?: string | null;
   onAttach?: (session: OpenCodeRemoteSession) => Promise<void>;
+  onOpenThread?: (thread: Thread) => Promise<void>;
   onDismiss: () => void;
   t: ReturnType<typeof useTranslation<"chat">>["t"];
 }) {
   const [sessions, setSessions] = useState<OpenCodeRemoteSession[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessionDetail, setSessionDetail] = useState<OpenCodeRemoteSessionDetail | null>(null);
+  const [children, setChildren] = useState<OpenCodeRemoteSession[]>([]);
+  const [todos, setTodos] = useState<OpenCodeTodo[]>([]);
+  const [diffs, setDiffs] = useState<OpenCodeFileDiff[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
@@ -317,13 +336,25 @@ function OpenCodeSessionsPanel({
   const [filter, setFilter] = useState<OpenCodeSessionFilter>("active");
   const [localBusy, setLocalBusy] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [revertMessageId, setRevertMessageId] = useState("");
+  const [revertPartId, setRevertPartId] = useState("");
   const browsingDisabled = !workspaceId || !selectedModelId || !onAttach;
   const blocked = busy || localBusy !== null;
   const displayError = error || localError;
+  const selectedSession =
+    sessions.find((session) => session.engineThreadId === selectedSessionId) ?? null;
+  const selectedAttachBusy = selectedSession
+    ? localBusy === `attach:${selectedSession.engineThreadId}`
+    : false;
 
   async function loadSessions(reset: boolean) {
     if (!workspaceId) {
       setSessions([]);
+      setSelectedSessionId(null);
+      setSessionDetail(null);
+      setChildren([]);
+      setTodos([]);
+      setDiffs([]);
       setNextCursor(null);
       setLoaded(true);
       return;
@@ -345,14 +376,26 @@ function OpenCodeSessionsPanel({
         archived: filter === "archived",
       });
       setSessions((current) => {
+        const nextSessions = reset
+          ? page.sessions
+          : [
+              ...current,
+              ...page.sessions.filter(
+                (session) =>
+                  !new Set(current.map((currentSession) => currentSession.engineThreadId)).has(
+                    session.engineThreadId,
+                  ),
+              ),
+            ];
         if (reset) {
-          return page.sessions;
+          const preferredSessionId =
+            nextSessions.find((session) => session.engineThreadId === selectedSessionId)
+              ?.engineThreadId ??
+            nextSessions[0]?.engineThreadId ??
+            null;
+          setSelectedSessionId(preferredSessionId);
         }
-        const seen = new Set(current.map((session) => session.engineThreadId));
-        return [
-          ...current,
-          ...page.sessions.filter((session) => !seen.has(session.engineThreadId)),
-        ];
+        return nextSessions;
       });
       setNextCursor(page.nextCursor ?? null);
       setLoaded(true);
@@ -360,6 +403,11 @@ function OpenCodeSessionsPanel({
       setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
       if (reset) {
         setSessions([]);
+        setSelectedSessionId(null);
+        setSessionDetail(null);
+        setChildren([]);
+        setTodos([]);
+        setDiffs([]);
         setNextCursor(null);
         setLoaded(true);
       }
@@ -372,6 +420,72 @@ function OpenCodeSessionsPanel({
     void loadSessions(true);
   }, [filter, searchQuery, workspaceId]);
 
+  useEffect(() => {
+    setSessionDetail(null);
+    setChildren([]);
+    setTodos([]);
+    setDiffs([]);
+    setRevertMessageId("");
+    setRevertPartId("");
+
+    if (!workspaceId || !selectedSession) {
+      return;
+    }
+
+    let active = true;
+    setLocalBusy((current) => current ?? `inspect:${selectedSession.engineThreadId}`);
+    setLocalError(null);
+    void Promise.all([
+      ipc.getOpenCodeRemoteSessionDetail(
+        workspaceId,
+        selectedSession.engineThreadId,
+        selectedSession.cwd,
+      ),
+      ipc.listOpenCodeRemoteSessionChildren(
+        workspaceId,
+        selectedSession.engineThreadId,
+        selectedSession.cwd,
+      ),
+      ipc.getOpenCodeRemoteSessionTodos(
+        workspaceId,
+        selectedSession.engineThreadId,
+        selectedSession.cwd,
+      ),
+      ipc.getOpenCodeRemoteSessionDiff(
+        workspaceId,
+        selectedSession.engineThreadId,
+        selectedSession.cwd,
+      ),
+    ])
+      .then(([detail, nextChildren, nextTodos, nextDiffs]) => {
+        if (!active) {
+          return;
+        }
+        setSessionDetail(detail);
+        setChildren(nextChildren);
+        setTodos(nextTodos);
+        setDiffs(nextDiffs);
+      })
+      .catch((nextError) => {
+        if (!active) {
+          return;
+        }
+        setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+      })
+      .finally(() => {
+        if (!active) {
+          return;
+        }
+        setLocalBusy((current) =>
+          current === `inspect:${selectedSession.engineThreadId}` ? null : current,
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedSessionId, sessions, workspaceId]);
+
   async function handleAttach(session: OpenCodeRemoteSession) {
     if (!onAttach) {
       return;
@@ -381,6 +495,196 @@ function OpenCodeSessionsPanel({
     try {
       await onAttach(session);
       onDismiss();
+    } catch (nextError) {
+      setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLocalBusy(null);
+    }
+  }
+
+  async function handleOpenThread(thread: Thread) {
+    if (!onOpenThread) {
+      return;
+    }
+    await onOpenThread(thread);
+    onDismiss();
+  }
+
+  async function handleFork(session: OpenCodeRemoteSession) {
+    if (!workspaceId || !selectedModelId) {
+      return;
+    }
+    setLocalBusy(`fork:${session.engineThreadId}`);
+    setLocalError(null);
+    try {
+      const thread = await ipc.forkOpenCodeRemoteSession(
+        workspaceId,
+        session.engineThreadId,
+        session.cwd,
+        selectedModelId,
+      );
+      toast.success(t("panel.toasts.openCodeThreadForked"));
+      await handleOpenThread(thread);
+    } catch (nextError) {
+      setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLocalBusy(null);
+    }
+  }
+
+  async function handleSummarize(session: OpenCodeRemoteSession) {
+    if (!workspaceId || !selectedModelId) {
+      return;
+    }
+    setLocalBusy(`summarize:${session.engineThreadId}`);
+    setLocalError(null);
+    try {
+      await ipc.summarizeOpenCodeRemoteSession(
+        workspaceId,
+        session.engineThreadId,
+        session.cwd,
+        selectedModelId,
+        false,
+      );
+      toast.success(t("panel.toasts.openCodeThreadCompactionStarted"));
+      await loadSessions(true);
+    } catch (nextError) {
+      setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLocalBusy(null);
+    }
+  }
+
+  async function handleShareToggle(session: OpenCodeRemoteSession, shared: boolean) {
+    if (!workspaceId) {
+      return;
+    }
+    setLocalBusy(`share:${session.engineThreadId}`);
+    setLocalError(null);
+    try {
+      const detail = shared
+        ? await ipc.unshareOpenCodeRemoteSession(
+            workspaceId,
+            session.engineThreadId,
+            session.cwd,
+          )
+        : await ipc.shareOpenCodeRemoteSession(
+            workspaceId,
+            session.engineThreadId,
+            session.cwd,
+          );
+      setSessionDetail(detail);
+      toast.success(
+        t(shared ? "panel.toasts.openCodeSessionUnshared" : "panel.toasts.openCodeSessionShared"),
+      );
+    } catch (nextError) {
+      setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLocalBusy(null);
+    }
+  }
+
+  async function handleArchiveToggle(session: OpenCodeRemoteSession) {
+    if (!workspaceId) {
+      return;
+    }
+    setLocalBusy(`archive:${session.engineThreadId}`);
+    setLocalError(null);
+    try {
+      if (session.archived) {
+        await ipc.unarchiveOpenCodeRemoteSession(
+          workspaceId,
+          session.engineThreadId,
+          session.cwd,
+        );
+      } else {
+        await ipc.archiveOpenCodeRemoteSession(
+          workspaceId,
+          session.engineThreadId,
+          session.cwd,
+        );
+      }
+      await loadSessions(true);
+    } catch (nextError) {
+      setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLocalBusy(null);
+    }
+  }
+
+  async function handleDelete(session: OpenCodeRemoteSession) {
+    if (!workspaceId) {
+      return;
+    }
+    setLocalBusy(`delete:${session.engineThreadId}`);
+    setLocalError(null);
+    try {
+      await ipc.deleteOpenCodeRemoteSession(
+        workspaceId,
+        session.engineThreadId,
+        session.cwd,
+      );
+      setSessions((current) =>
+        current.filter((item) => item.engineThreadId !== session.engineThreadId),
+      );
+      if (selectedSessionId === session.engineThreadId) {
+        setSelectedSessionId(null);
+        setSessionDetail(null);
+        setChildren([]);
+        setTodos([]);
+        setDiffs([]);
+      }
+      toast.success(t("panel.toasts.openCodeSessionDeleted"));
+    } catch (nextError) {
+      setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLocalBusy(null);
+    }
+  }
+
+  async function handleUnrevert(session: OpenCodeRemoteSession) {
+    if (!workspaceId) {
+      return;
+    }
+    setLocalBusy(`unrevert:${session.engineThreadId}`);
+    setLocalError(null);
+    try {
+      const detail = await ipc.unrevertOpenCodeRemoteSession(
+        workspaceId,
+        session.engineThreadId,
+        session.cwd,
+      );
+      setSessionDetail(detail);
+      toast.success(t("panel.toasts.openCodeSessionUnreverted"));
+    } catch (nextError) {
+      setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLocalBusy(null);
+    }
+  }
+
+  async function handleRevert(session: OpenCodeRemoteSession) {
+    if (!workspaceId) {
+      return;
+    }
+    const messageId = revertMessageId.trim();
+    const partId = revertPartId.trim();
+    if (!messageId) {
+      setLocalError(t("slashCommands.panels.openCodeSessions.revertMessageRequired"));
+      return;
+    }
+    setLocalBusy(`revert:${session.engineThreadId}`);
+    setLocalError(null);
+    try {
+      const detail = await ipc.revertOpenCodeRemoteSession(
+        workspaceId,
+        session.engineThreadId,
+        session.cwd,
+        messageId,
+        partId || null,
+      );
+      setSessionDetail(detail);
+      toast.success(t("panel.toasts.openCodeSessionReverted"));
     } catch (nextError) {
       setLocalError(nextError instanceof Error ? nextError.message : String(nextError));
     } finally {
@@ -475,8 +779,18 @@ function OpenCodeSessionsPanel({
         {sessions.map((session) => {
           const label = describeOpenCodeSession(session);
           const attachBusy = localBusy === `attach:${session.engineThreadId}`;
+          const selected = selectedSessionId === session.engineThreadId;
           return (
-            <div key={session.engineThreadId} className="chat-command-panel-list-item">
+            <button
+              key={session.engineThreadId}
+              type="button"
+              className="chat-command-panel-list-item"
+              onClick={() => setSelectedSessionId(session.engineThreadId)}
+              style={{
+                textAlign: "left",
+                borderColor: selected ? "var(--accent)" : undefined,
+              }}
+            >
               <div style={{ minWidth: 0 }}>
                 <div className="chat-command-panel-list-name" title={label}>
                   {label}
@@ -490,23 +804,236 @@ function OpenCodeSessionsPanel({
                   })}
                 </div>
               </div>
-              <button
-                type="button"
-                className="chat-command-panel-btn-primary"
-                onClick={() => void handleAttach(session)}
-                disabled={blocked || browsingDisabled}
-              >
-                <ArrowRightCircle size={11} />
-                {attachBusy
-                  ? t("threadPicker.working")
-                  : session.localThreadId
-                    ? t("threadPicker.openAttachedAction")
-                    : t("threadPicker.attachAction")}
-              </button>
-            </div>
+              <span className="chat-command-panel-info-badge">
+                {session.archived
+                  ? t("slashCommands.panels.openCodeSessions.filters.archived")
+                  : t("slashCommands.panels.openCodeSessions.filters.active")}
+              </span>
+            </button>
           );
         })}
       </div>
+
+      {selectedSession ? (
+        <div className="chat-command-panel-fields">
+          <div className="chat-command-panel-field">
+            <span className="chat-command-panel-field-label">
+              {t("slashCommands.panels.openCodeSessions.selected")}
+            </span>
+            <div className="chat-command-panel-desc">{describeOpenCodeSession(selectedSession)}</div>
+            <div className="chat-command-panel-hint">{selectedSession.cwd}</div>
+          </div>
+
+          <div className="chat-command-panel-actions" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="chat-command-panel-btn-primary"
+              onClick={() => void handleAttach(selectedSession)}
+              disabled={blocked || browsingDisabled}
+            >
+              <ArrowRightCircle size={11} />
+              {selectedAttachBusy
+                ? t("threadPicker.working")
+                : selectedSession.localThreadId
+                  ? t("threadPicker.openAttachedAction")
+                  : t("threadPicker.attachAction")}
+            </button>
+            <button
+              type="button"
+              className="chat-command-panel-btn-secondary"
+              onClick={() => void handleFork(selectedSession)}
+              disabled={blocked || browsingDisabled}
+            >
+              <GitBranch size={11} />
+              {t("threadPicker.forkAction")}
+            </button>
+            <button
+              type="button"
+              className="chat-command-panel-btn-secondary"
+              onClick={() => void handleSummarize(selectedSession)}
+              disabled={blocked || browsingDisabled}
+            >
+              <Scissors size={11} />
+              {t("threadPicker.compactAction")}
+            </button>
+            <button
+              type="button"
+              className="chat-command-panel-btn-secondary"
+              onClick={() =>
+                void handleShareToggle(selectedSession, Boolean(sessionDetail?.shareUrl))
+              }
+              disabled={blocked || !workspaceId}
+            >
+              <Share2 size={11} />
+              {sessionDetail?.shareUrl
+                ? t("slashCommands.panels.openCodeSessions.unshareAction")
+                : t("slashCommands.panels.openCodeSessions.shareAction")}
+            </button>
+            <button
+              type="button"
+              className="chat-command-panel-btn-secondary"
+              onClick={() => void handleArchiveToggle(selectedSession)}
+              disabled={blocked || !workspaceId}
+            >
+              <Archive size={11} />
+              {selectedSession.archived
+                ? t("slashCommands.panels.openCodeSessions.restoreAction")
+                : t("slashCommands.panels.openCodeSessions.archiveAction")}
+            </button>
+            {sessionDetail?.revert ? (
+              <button
+                type="button"
+                className="chat-command-panel-btn-secondary"
+                onClick={() => void handleUnrevert(selectedSession)}
+                disabled={blocked || !workspaceId}
+              >
+                <Undo2 size={11} />
+                {t("slashCommands.panels.openCodeSessions.unrevertAction")}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="chat-command-panel-btn-secondary chat-command-panel-btn-danger"
+              onClick={() => void handleDelete(selectedSession)}
+              disabled={blocked || !workspaceId}
+            >
+              <Trash2 size={11} />
+              {t("slashCommands.panels.openCodeSessions.deleteAction")}
+            </button>
+          </div>
+
+          {sessionDetail?.shareUrl ? (
+            <div className="chat-command-panel-field">
+              <span className="chat-command-panel-field-label">
+                {t("slashCommands.panels.openCodeSessions.shareUrl")}
+              </span>
+              <div className="chat-command-panel-hint">{sessionDetail.shareUrl}</div>
+            </div>
+          ) : null}
+
+          {sessionDetail?.summary ? (
+            <div className="chat-command-panel-field">
+              <span className="chat-command-panel-field-label">
+                {t("slashCommands.panels.openCodeSessions.summary")}
+              </span>
+              <div className="chat-command-panel-hint">
+                {t("slashCommands.panels.openCodeSessions.summaryMeta", {
+                  files: sessionDetail.summary.files,
+                  additions: sessionDetail.summary.additions,
+                  deletions: sessionDetail.summary.deletions,
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {sessionDetail?.revert ? (
+            <div className="chat-command-panel-field">
+              <span className="chat-command-panel-field-label">
+                {t("slashCommands.panels.openCodeSessions.revertState")}
+              </span>
+              <div className="chat-command-panel-hint">
+                {t("slashCommands.panels.openCodeSessions.revertMeta", {
+                  messageId: sessionDetail.revert.messageId,
+                  partId: sessionDetail.revert.partId || "-",
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="chat-command-panel-field">
+              <span className="chat-command-panel-field-label">
+                {t("slashCommands.panels.openCodeSessions.revertAction")}
+              </span>
+              <input
+                className="chat-command-panel-input"
+                value={revertMessageId}
+                onChange={(event) => setRevertMessageId(event.target.value)}
+                placeholder={t("slashCommands.panels.openCodeSessions.revertMessagePlaceholder")}
+                disabled={blocked || !workspaceId}
+              />
+              <input
+                className="chat-command-panel-input"
+                value={revertPartId}
+                onChange={(event) => setRevertPartId(event.target.value)}
+                placeholder={t("slashCommands.panels.openCodeSessions.revertPartPlaceholder")}
+                disabled={blocked || !workspaceId}
+              />
+              <div className="chat-command-panel-actions" style={{ justifyContent: "flex-start" }}>
+                <button
+                  type="button"
+                  className="chat-command-panel-btn-secondary"
+                  onClick={() => void handleRevert(selectedSession)}
+                  disabled={blocked || !workspaceId}
+                >
+                  <Undo2 size={11} />
+                  {t("slashCommands.panels.openCodeSessions.revertAction")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {todos.length > 0 ? (
+            <div className="chat-command-panel-field">
+              <span className="chat-command-panel-field-label">
+                {t("slashCommands.panels.openCodeSessions.todos")}
+              </span>
+              <div className="chat-command-panel-info-list">
+                {todos.map((todo, index) => (
+                  <div
+                    key={`${todo.content}-${index}`}
+                    className="chat-command-panel-info-item"
+                  >
+                    <span className="chat-command-panel-info-name">{todo.content}</span>
+                    <span className="chat-command-panel-info-detail">
+                      {todo.priority}
+                    </span>
+                    <span className="chat-command-panel-info-badge">{todo.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {children.length > 0 ? (
+            <div className="chat-command-panel-field">
+              <span className="chat-command-panel-field-label">
+                {t("slashCommands.panels.openCodeSessions.children")}
+              </span>
+              <div className="chat-command-panel-info-list">
+                {children.map((child) => (
+                  <div key={child.engineThreadId} className="chat-command-panel-info-item">
+                    <span className="chat-command-panel-info-name">
+                      {describeOpenCodeSession(child)}
+                    </span>
+                    <span className="chat-command-panel-info-detail">{child.cwd}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {diffs.length > 0 ? (
+            <div className="chat-command-panel-field">
+              <span className="chat-command-panel-field-label">
+                {t("slashCommands.panels.openCodeSessions.diff")}
+              </span>
+              <div className="chat-command-panel-info-list">
+                {diffs.map((diff) => (
+                  <div key={diff.file} className="chat-command-panel-info-item">
+                    <span className="chat-command-panel-info-name">{diff.file}</span>
+                    <span className="chat-command-panel-info-detail">
+                      {t("slashCommands.panels.openCodeSessions.diffMeta", {
+                        additions: diff.additions,
+                        deletions: diff.deletions,
+                        status: diff.status || "modified",
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="chat-command-panel-actions">
         <button

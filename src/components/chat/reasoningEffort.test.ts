@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveReasoningEffortForModel } from "./reasoningEffort";
+import { reasoningOptionsForModel, resolveReasoningEffortForModel } from "./reasoningEffort";
 
 const model = {
   defaultReasoningEffort: "medium",
@@ -43,5 +43,15 @@ describe("resolveReasoningEffortForModel", () => {
         "medium",
       ),
     ).toBeNull();
+  });
+
+  it("omits reasoning options when the runtime catalog does not expose variants", () => {
+    expect(
+      reasoningOptionsForModel(
+        {
+          supportedReasoningEfforts: [],
+        },
+      ),
+    ).toEqual([]);
   });
 });

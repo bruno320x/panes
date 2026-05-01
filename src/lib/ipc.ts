@@ -43,10 +43,14 @@ import type {
   Message,
   MessageWindow,
   MessageWindowCursor,
+  OpenCodeRemoteSession,
   OpenCodeRemoteSessionPage,
+  OpenCodeRemoteSessionDetail,
+  OpenCodeFileDiff,
   OpenCodeProviderAuthResponse,
   OpenCodeProviderListResponse,
   OpenCodeRuntimeCatalog,
+  OpenCodeTodo,
   ReadFileResult,
   ResolvedEditorFileReference,
   Repo,
@@ -241,6 +245,150 @@ export const ipc = {
       cwd,
       modelId,
     }),
+  getOpenCodeRemoteSessionDetail: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<OpenCodeRemoteSessionDetail>("get_opencode_remote_session_detail", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  listOpenCodeRemoteSessionChildren: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<OpenCodeRemoteSession[]>("list_opencode_remote_session_children", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  getOpenCodeRemoteSessionTodos: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<OpenCodeTodo[]>("get_opencode_remote_session_todos", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  getOpenCodeRemoteSessionDiff: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+    messageId?: string | null,
+  ) =>
+    invoke<OpenCodeFileDiff[]>("get_opencode_remote_session_diff", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+      messageId: messageId ?? null,
+    }),
+  shareOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<OpenCodeRemoteSessionDetail>("share_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  unshareOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<OpenCodeRemoteSessionDetail>("unshare_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  summarizeOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+    modelId: string,
+    auto?: boolean | null,
+  ) =>
+    invoke<boolean>("summarize_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+      modelId,
+      auto: auto ?? null,
+    }),
+  forkOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+    modelId: string,
+    messageId?: string | null,
+  ) =>
+    invoke<Thread>("fork_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+      modelId,
+      messageId: messageId ?? null,
+    }),
+  revertOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+    messageId: string,
+    partId?: string | null,
+  ) =>
+    invoke<OpenCodeRemoteSessionDetail>("revert_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+      messageId,
+      partId: partId ?? null,
+    }),
+  unrevertOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<OpenCodeRemoteSessionDetail>("unrevert_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  archiveOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<void>("archive_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  unarchiveOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<void>("unarchive_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
+  deleteOpenCodeRemoteSession: (
+    workspaceId: string,
+    engineThreadId: string,
+    cwd: string,
+  ) =>
+    invoke<void>("delete_opencode_remote_session", {
+      workspaceId,
+      engineThreadId,
+      cwd,
+    }),
   createThread: (
     workspaceId: string,
     repoId: string | null,
@@ -333,6 +481,10 @@ export const ipc = {
     invoke<Thread>("rollback_codex_thread", { threadId, numTurns }),
   compactCodexThread: (threadId: string) =>
     invoke<Thread>("compact_codex_thread", { threadId }),
+  forkOpenCodeThread: (threadId: string) =>
+    invoke<Thread>("fork_opencode_thread", { threadId }),
+  compactOpenCodeThread: (threadId: string) =>
+    invoke<Thread>("compact_opencode_thread", { threadId }),
   deleteThread: (threadId: string) => invoke<void>("delete_thread", { threadId }),
   listEngines: () => invoke<EngineInfo[]>("list_engines"),
   engineHealth: (engineId: string) => invoke<EngineHealth>("engine_health", { engineId }),
@@ -350,6 +502,8 @@ export const ipc = {
     invoke<OpenCodeProviderAuthResponse>("get_opencode_provider_auth", { cwd }),
   setOpenCodeProviderAuth: (cwd: string, providerId: string, body: Record<string, unknown>) =>
     invoke<unknown>("set_opencode_provider_auth", { cwd, providerId, body }),
+  deleteOpenCodeProviderAuth: (cwd: string, providerId: string) =>
+    invoke<unknown>("delete_opencode_provider_auth", { cwd, providerId }),
   startOpenCodeProviderOAuth: (cwd: string, providerId: string, body: Record<string, unknown>) =>
     invoke<unknown>("start_opencode_provider_oauth", { cwd, providerId, body }),
   completeOpenCodeProviderOAuth: (cwd: string, providerId: string, body: Record<string, unknown>) =>

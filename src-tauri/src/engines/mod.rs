@@ -384,6 +384,55 @@ pub struct OpenCodeRemoteSessionSummary {
 }
 
 #[derive(Debug, Clone)]
+pub struct OpenCodeFileDiffSummary {
+    pub file: String,
+    pub before: String,
+    pub after: String,
+    pub additions: i64,
+    pub deletions: i64,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct OpenCodeTodoSummary {
+    pub content: String,
+    pub status: String,
+    pub priority: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct OpenCodeSessionSummaryStats {
+    pub additions: i64,
+    pub deletions: i64,
+    pub files: i64,
+    pub diffs: Vec<OpenCodeFileDiffSummary>,
+}
+
+#[derive(Debug, Clone)]
+pub struct OpenCodeSessionRevertState {
+    pub message_id: String,
+    pub part_id: Option<String>,
+    pub snapshot: Option<String>,
+    pub diff: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct OpenCodeRemoteSessionDetail {
+    pub engine_thread_id: String,
+    pub title: Option<String>,
+    pub cwd: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub archived: bool,
+    pub slug: Option<String>,
+    pub parent_thread_id: Option<String>,
+    pub version: Option<String>,
+    pub share_url: Option<String>,
+    pub summary: Option<OpenCodeSessionSummaryStats>,
+    pub revert: Option<OpenCodeSessionRevertState>,
+}
+
+#[derive(Debug, Clone)]
 pub struct TurnAttachment {
     pub file_name: String,
     pub file_path: String,
@@ -601,7 +650,17 @@ impl EngineManager {
         provider_id: &str,
         body: Value,
     ) -> anyhow::Result<Value> {
-        self.opencode.put_provider_auth(cwd, provider_id, body).await
+        self.opencode
+            .put_provider_auth(cwd, provider_id, body)
+            .await
+    }
+
+    pub async fn delete_opencode_provider_auth(
+        &self,
+        cwd: &str,
+        provider_id: &str,
+    ) -> anyhow::Result<Value> {
+        self.opencode.delete_provider_auth(cwd, provider_id).await
     }
 
     pub async fn start_opencode_provider_oauth(
@@ -628,11 +687,7 @@ impl EngineManager {
         self.opencode.get_config(cwd).await
     }
 
-    pub async fn patch_opencode_config(
-        &self,
-        cwd: &str,
-        body: Value,
-    ) -> anyhow::Result<Value> {
+    pub async fn patch_opencode_config(&self, cwd: &str, body: Value) -> anyhow::Result<Value> {
         self.opencode.patch_config(cwd, body).await
     }
 
@@ -725,6 +780,123 @@ impl EngineManager {
         self.opencode
             .set_session_archived(cwd, engine_thread_id, false)
             .await
+    }
+
+    pub async fn rename_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+        title: &str,
+    ) -> anyhow::Result<()> {
+        self.opencode
+            .rename_session(cwd, engine_thread_id, title)
+            .await
+    }
+
+    pub async fn delete_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+    ) -> anyhow::Result<()> {
+        self.opencode.delete_session(cwd, engine_thread_id).await
+    }
+
+    pub async fn get_opencode_remote_session_detail(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+    ) -> anyhow::Result<OpenCodeRemoteSessionDetail> {
+        self.opencode
+            .read_session_detail(cwd, engine_thread_id)
+            .await
+    }
+
+    pub async fn list_opencode_remote_session_children(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+    ) -> anyhow::Result<Vec<OpenCodeRemoteSessionSummary>> {
+        self.opencode
+            .list_session_children(cwd, engine_thread_id)
+            .await
+    }
+
+    pub async fn get_opencode_remote_session_todos(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+    ) -> anyhow::Result<Vec<OpenCodeTodoSummary>> {
+        self.opencode.get_session_todos(cwd, engine_thread_id).await
+    }
+
+    pub async fn get_opencode_remote_session_diff(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+        message_id: Option<&str>,
+    ) -> anyhow::Result<Vec<OpenCodeFileDiffSummary>> {
+        self.opencode
+            .get_session_diff(cwd, engine_thread_id, message_id)
+            .await
+    }
+
+    pub async fn share_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+    ) -> anyhow::Result<OpenCodeRemoteSessionDetail> {
+        self.opencode.share_session(cwd, engine_thread_id).await
+    }
+
+    pub async fn unshare_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+    ) -> anyhow::Result<OpenCodeRemoteSessionDetail> {
+        self.opencode.unshare_session(cwd, engine_thread_id).await
+    }
+
+    pub async fn summarize_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+        model_id: &str,
+        auto: Option<bool>,
+    ) -> anyhow::Result<bool> {
+        self.opencode
+            .summarize_session(cwd, engine_thread_id, model_id, auto)
+            .await
+    }
+
+    pub async fn fork_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+        message_id: Option<&str>,
+    ) -> anyhow::Result<OpenCodeRemoteSessionDetail> {
+        self.opencode
+            .fork_session(cwd, engine_thread_id, message_id)
+            .await
+    }
+
+    pub async fn revert_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+        message_id: &str,
+        part_id: Option<&str>,
+    ) -> anyhow::Result<OpenCodeRemoteSessionDetail> {
+        self.opencode
+            .revert_session(cwd, engine_thread_id, message_id, part_id)
+            .await
+    }
+
+    pub async fn unrevert_opencode_remote_session(
+        &self,
+        cwd: &str,
+        engine_thread_id: &str,
+    ) -> anyhow::Result<OpenCodeRemoteSessionDetail> {
+        self.opencode.unrevert_session(cwd, engine_thread_id).await
     }
 
     pub async fn forget_opencode_session(&self, engine_thread_id: &str) {

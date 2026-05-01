@@ -11,6 +11,7 @@ import {
   isOpenCodeServerApiUnsupported,
   modelsEndpoint,
   normalizeProviderId,
+  removeCustomProviderConfigPatch,
   type ProviderGroup,
 } from "./openCodeProviderConnectUtils";
 
@@ -43,6 +44,7 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
   const [selectedCustomModels, setSelectedCustomModels] = useState<string[]>([]);
   const [customModelDraft, setCustomModelDraft] = useState("");
   const [providerCatalog, setProviderCatalog] = useState<ProviderGroup[]>([]);
+  const [projectConfigProviderIds, setProjectConfigProviderIds] = useState<string[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -106,14 +108,16 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
     if (!activeWorkspace) {
       setProviderCatalog(fallbackCatalog);
       setProviderApiUnsupported(false);
+      setProjectConfigProviderIds([]);
       return;
     }
 
     setLoadingProviders(true);
     try {
-      const [providersResult, authResult] = await Promise.allSettled([
+      const [providersResult, authResult, configResult] = await Promise.allSettled([
         ipc.getOpenCodeProviders(activeWorkspace.rootPath),
         ipc.getOpenCodeProviderAuth(activeWorkspace.rootPath),
+        ipc.getOpenCodeConfig(activeWorkspace.rootPath),
       ]);
 
       let providers = null;
@@ -136,9 +140,21 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
         throw authResult.reason;
       }
 
+      const configProviderIds =
+        configResult.status === "fulfilled" &&
+        configResult.value &&
+        typeof configResult.value === "object" &&
+        !Array.isArray(configResult.value) &&
+        typeof (configResult.value as Record<string, unknown>).provider === "object" &&
+        (configResult.value as Record<string, unknown>).provider !== null &&
+        !Array.isArray((configResult.value as Record<string, unknown>).provider)
+          ? Object.keys((configResult.value as Record<string, unknown>).provider as Record<string, unknown>)
+          : [];
+
       const catalog = buildProviderCatalog(providers, auth, models);
       setProviderApiUnsupported(unsupported);
       setProviderCatalog(catalog);
+      setProjectConfigProviderIds(configProviderIds.map((value) => value.trim().toLowerCase()));
       setSelectedProviderId((current) => {
         if (current === "custom") return current;
         if (current && catalog.some((provider) => provider.providerId === current)) return current;
@@ -150,6 +166,7 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
     } catch (error) {
       setProviderApiUnsupported(false);
       setProviderCatalog(fallbackCatalog);
+      setProjectConfigProviderIds([]);
       setSelectedProviderId((current) => current === "custom" ? current : fallbackCatalog[0]?.providerId ?? null);
       setStatus(`Failed to load provider data from OpenCode: ${String(error)}`);
     } finally {
@@ -288,6 +305,64 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
     }
   }
 
+  async function writeCustomProviderRemovalFallbackFile(providerId: string) {
+    if (!activeWorkspace) {
+      throw new Error("workspace is required");
+    }
+
+    let config: Record<string, unknown> = {};
+    try {
+      const existing = await ipc.readFile(activeWorkspace.rootPath, "opencode.json");
+      config = JSON.parse(existing.content) as Record<string, unknown>;
+    } catch {
+      config = {};
+    }
+
+    const nextConfig = removeCustomProviderConfigPatch(config, providerId);
+
+    await ipc.writeFile(
+      activeWorkspace.rootPath,
+      "opencode.json",
+      `${JSON.stringify(nextConfig, null, 2)}\n`,
+      activeWorkspace.id,
+    );
+  }
+
+  async function removeCustomProvider(providerId: string) {
+    if (!activeWorkspace) {
+      setStatus("Open a workspace before removing a custom provider.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      try {
+        const existing = await ipc.getOpenCodeConfig(activeWorkspace.rootPath);
+        const config =
+          typeof existing === "object" && existing !== null && !Array.isArray(existing)
+            ? existing
+            : {};
+        const patch = removeCustomProviderConfigPatch(config as Record<string, unknown>, providerId);
+        await ipc.patchOpenCodeConfig(activeWorkspace.rootPath, patch);
+        setStatus(`Removed custom provider ${providerId} through the OpenCode config API.`);
+      } catch (error) {
+        if (!isOpenCodeServerApiUnsupported(error)) {
+          throw error;
+        }
+        await writeCustomProviderRemovalFallbackFile(providerId);
+        setStatus("This OpenCode runtime does not support config endpoints yet. Removed the custom provider from project opencode.json as an explicit fallback.");
+      }
+
+      await refreshOpenCode();
+      await loadProviderState();
+      setSelectedProviderId(null);
+    } catch (error) {
+      setStatus(`Failed to remove custom provider: ${String(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveApiKey() {
     if (!activeWorkspace || !selectedProvider) {
       setStatus("Open a workspace before saving provider credentials.");
@@ -322,6 +397,36 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
         return;
       }
       setStatus(`Failed to save provider credentials: ${String(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function disconnectProvider() {
+    if (!activeWorkspace || !selectedProvider) {
+      setStatus("Open a workspace before disconnecting a provider.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await ipc.deleteOpenCodeProviderAuth(activeWorkspace.rootPath, selectedProvider.providerId);
+      if (apiKeyInputRef.current) {
+        apiKeyInputRef.current.value = "";
+      }
+      setPendingOauthProviderId(null);
+      setPendingOauthMethodIndex(null);
+      setOauthCode("");
+      setStatus(`Disconnected ${selectedProvider.providerLabel} through the OpenCode server API.`);
+      await refreshOpenCode();
+      await loadProviderState();
+    } catch (error) {
+      if (isOpenCodeServerApiUnsupported(error)) {
+        setStatus("This OpenCode runtime does not support provider disconnect endpoints yet. Use the manual /connect fallback if you need to reconfigure it.");
+        setProviderApiUnsupported(true);
+        return;
+      }
+      setStatus(`Failed to disconnect provider: ${String(error)}`);
     } finally {
       setSaving(false);
     }
@@ -422,6 +527,10 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
     : [];
   const waitingForOauthCode =
     selectedProvider?.providerId === pendingOauthProviderId && pendingOauthMethodIndex !== null;
+  const canRemoveSelectedCustomProvider =
+    !!selectedProvider &&
+    projectConfigProviderIds.includes(selectedProvider.providerId.toLowerCase());
+  const canDisconnectSelectedProvider = !!selectedProvider && selectedProvider.connected && !canRemoveSelectedCustomProvider;
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.56)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} role="dialog" aria-modal="true">
@@ -455,6 +564,11 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
                   </span>
                 </div>
                 <div style={{ color: "var(--text-3)", fontSize: 11 }}>{provider.providerId}</div>
+                {provider.source ? (
+                  <div style={{ color: "var(--text-3)", fontSize: 11 }}>
+                    source: {provider.source}
+                  </div>
+                ) : null}
               </button>
             ))}
           </div>
@@ -490,16 +604,33 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
             ) : selectedProvider ? (
               <div style={{ display: "grid", gap: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ fontWeight: 600 }}>{selectedProvider.providerLabel}</div>
-                      <span style={{ fontSize: 11, color: selectedProvider.connected ? "var(--success, #42c97a)" : "var(--text-3)" }}>
-                        {selectedProvider.connected ? "Connected" : "Disconnected"}
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ fontWeight: 600 }}>{selectedProvider.providerLabel}</div>
+                        <span style={{ fontSize: 11, color: selectedProvider.connected ? "var(--success, #42c97a)" : "var(--text-3)" }}>
+                          {selectedProvider.connected ? "Connected" : "Disconnected"}
                       </span>
                     </div>
                     <div style={{ color: "var(--text-3)", fontSize: 12 }}>{selectedProvider.models.length} known models</div>
+                    {selectedProvider.source ? (
+                      <div style={{ color: "var(--text-3)", fontSize: 12 }}>
+                        source: {selectedProvider.source}
+                      </div>
+                    ) : null}
                   </div>
-                  <button type="button" className="btn btn-outline" onClick={openConnect}>Open /connect fallback</button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {canDisconnectSelectedProvider ? (
+                      <button type="button" className="btn btn-outline" onClick={() => void disconnectProvider()} disabled={saving}>
+                        {saving ? "Disconnecting..." : "Disconnect"}
+                      </button>
+                    ) : null}
+                    {canRemoveSelectedCustomProvider ? (
+                      <button type="button" className="btn btn-outline" onClick={() => void removeCustomProvider(selectedProvider.providerId)} disabled={saving}>
+                        {saving ? "Removing..." : "Remove custom provider"}
+                      </button>
+                    ) : null}
+                    <button type="button" className="btn btn-outline" onClick={openConnect}>Open /connect fallback</button>
+                  </div>
                 </div>
 
                 {loadingProviders ? (
@@ -510,6 +641,11 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
                   <div style={{ display: "grid", gap: 8, padding: 12, border: "1px solid var(--border)", borderRadius: 10 }}>
                     <div style={{ fontWeight: 600 }}>API key</div>
                     <input ref={apiKeyInputRef} type="password" autoComplete="off" placeholder={authMethodLabel("Paste API key", apiAuthMethods[0]?.label)} style={{ padding: 9, border: "1px solid var(--border)", borderRadius: 8 }} />
+                    {selectedProvider.envKeys.length > 0 ? (
+                      <div style={{ color: "var(--text-3)", fontSize: 11 }}>
+                        Expected env key{selectedProvider.envKeys.length > 1 ? "s" : ""}: {selectedProvider.envKeys.join(", ")}
+                      </div>
+                    ) : null}
                     <div>
                       <button type="button" className="btn btn-primary" onClick={saveApiKey} disabled={saving}>
                         {saving ? "Saving..." : authMethodLabel("Save key", apiAuthMethods[0]?.label)}
@@ -552,7 +688,17 @@ export function OpenCodeProviderConnectModal({ open, models, onClose, onRefresh 
                 <div style={{ display: "grid", gap: 6 }}>
                   {visibleModels.slice(0, 80).map((model) => (
                     <div key={model.id} style={{ padding: 9, border: "1px solid var(--border)", borderRadius: 8 }}>
-                      <div style={{ fontWeight: 600 }}>{model.displayName}</div>
+                      <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span>{model.displayName}</span>
+                        {selectedProvider.defaultModelId && (
+                          model.id === `${selectedProvider.providerId}/${selectedProvider.defaultModelId}` ||
+                          model.id === selectedProvider.defaultModelId
+                        ) ? (
+                          <span style={{ fontSize: 10, color: "var(--text-3)", border: "1px solid var(--border)", borderRadius: 999, padding: "1px 6px" }}>
+                            default
+                          </span>
+                        ) : null}
+                      </div>
                       <div style={{ color: "var(--text-3)", fontSize: 11 }}>{model.id}</div>
                     </div>
                   ))}
