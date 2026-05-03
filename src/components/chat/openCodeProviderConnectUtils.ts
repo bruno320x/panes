@@ -50,7 +50,41 @@ export function normalizeProviderId(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-function syntheticModel(providerId: string, modelId: string, displayName: string): EngineModel {
+// Modelos que suportam reasoning effort
+const REASONING_MODELS: Record<string, string[]> = {
+  openai: ["o1", "o1-mini", "o1-preview", "o3", "o3-mini", "o4-mini", "o4"],
+  anthropic: ["claude-sonnet-4-7", "claude-opus-4-5"],
+};
+
+/**
+ * Verifica se um modelo suporta reasoning effort baseado no provider e modelId.
+ */
+function supportsReasoningEffort(providerId: string, modelId: string): boolean {
+  const providerLower = providerId.toLowerCase();
+  const modelLower = modelId.toLowerCase();
+  const models = REASONING_MODELS[providerLower];
+  if (!models) return false;
+  return models.some((m) => modelLower.includes(m.toLowerCase()));
+}
+
+/**
+ * Retorna a lista de opções de reasoning effort para modelos que suportam.
+ */
+function getReasoningEffortsForModel(): Array<{ reasoningEffort: string; description: string }> {
+  return [
+    { reasoningEffort: "low", description: "Fast" },
+    { reasoningEffort: "medium", description: "Balanced" },
+    { reasoningEffort: "high", description: "Deep" },
+  ];
+}
+
+function syntheticModel(
+  providerId: string,
+  modelId: string,
+  displayName: string,
+  reasoningSupport?: boolean,
+): EngineModel {
+  const actuallySupports = reasoningSupport ?? supportsReasoningEffort(providerId, modelId);
   return {
     id: `${providerId}/${modelId}`,
     displayName,
@@ -61,7 +95,7 @@ function syntheticModel(providerId: string, modelId: string, displayName: string
     attachmentModalities: [],
     supportsPersonality: false,
     defaultReasoningEffort: "medium",
-    supportedReasoningEfforts: [],
+    supportedReasoningEfforts: actuallySupports ? getReasoningEffortsForModel() : [],
   };
 }
 
