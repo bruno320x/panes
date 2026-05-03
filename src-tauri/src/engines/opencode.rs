@@ -1144,6 +1144,98 @@ impl OpenCodeEngine {
         result
     }
 
+    pub async fn list_providers(&self, cwd: &str) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::GET,
+            "/provider",
+            None,
+            "list OpenCode providers",
+        )
+        .await
+    }
+
+    pub async fn list_provider_auth(&self, cwd: &str) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::GET,
+            "/provider/auth",
+            None,
+            "list OpenCode provider auth methods",
+        )
+        .await
+    }
+
+    pub async fn put_provider_auth(
+        &self,
+        cwd: &str,
+        provider_id: &str,
+        body: Value,
+    ) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::PUT,
+            &format!("/auth/{provider_id}"),
+            Some(body),
+            "save OpenCode provider credentials",
+        )
+        .await
+    }
+
+    pub async fn authorize_provider_oauth(
+        &self,
+        cwd: &str,
+        provider_id: &str,
+        body: Value,
+    ) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::POST,
+            &format!("/provider/{provider_id}/oauth/authorize"),
+            Some(body),
+            "start OpenCode provider OAuth",
+        )
+        .await
+    }
+
+    pub async fn oauth_callback(
+        &self,
+        cwd: &str,
+        provider_id: &str,
+        body: Value,
+    ) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::POST,
+            &format!("/provider/{provider_id}/oauth/callback"),
+            Some(body),
+            "complete OpenCode provider OAuth",
+        )
+        .await
+    }
+
+    pub async fn get_config(&self, cwd: &str) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::GET,
+            "/config",
+            None,
+            "read OpenCode config",
+        )
+        .await
+    }
+
+    pub async fn patch_config(&self, cwd: &str, body: Value) -> Result<Value> {
+        self.request_runtime_json(
+            cwd,
+            reqwest::Method::PATCH,
+            "/config",
+            Some(body),
+            "update OpenCode config",
+        )
+        .await
+    }
+
     pub async fn list_sessions(
         &self,
         cwd: &str,
@@ -1467,6 +1559,37 @@ impl OpenCodeEngine {
         self.http
             .request(method, url)
             .headers(auth_headers(&server.password))
+    }
+
+    async fn request_runtime_json(
+        &self,
+        cwd: &str,
+        method: reqwest::Method,
+        path: &str,
+        body: Option<Value>,
+        action: &str,
+    ) -> Result<Value> {
+        let server = self.ensure_server(cwd).await?;
+        let result = async {
+            let mut request = self
+                .request(server.as_ref(), method, path)
+                .query(&[("directory", cwd)]);
+            if let Some(body) = body {
+                request = request.json(&body);
+            }
+            request
+                .send()
+                .await
+                .with_context(|| format!("failed to {action}"))?
+                .error_for_status()
+                .with_context(|| format!("failed to {action}"))?
+                .json::<Value>()
+                .await
+                .with_context(|| format!("failed to parse response while trying to {action}"))
+        }
+        .await;
+        self.stop_server_if_unused(cwd).await;
+        result
     }
 
     async fn handle_event(
