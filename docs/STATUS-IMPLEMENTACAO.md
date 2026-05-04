@@ -218,17 +218,33 @@ src-tauri/src/commands/skills.rs  # 256 linhas Rust backend
 
 ---
 
-## 📈 Métricas
+## 📈 Métricas Atualizadas
 
 | Métrica | Valor |
 |---------|-------|
-| Relatórios de análise | 12 |
-| Linhas de análise | ~9,800 |
-| Implementações completas | 2 |
-| Bugs críticos | 3 |
-| Problemas moderados | 20+ |
-| Decisões técnicas | 1 |
-| Commits realizados | 4 |
+| Relatórios de análise | 12 ✅ |
+| Bugs críticos corrigidos | 1/1 ✅ (`minify: false`) |
+| Bugs moderada corrigidos | 2/2 ✅ (power, SQL) |
+| Skills UI integrada | ✅ Completo |
+| Reasoning effort | ✅ Corrigido |
+| Plan Mode | ✅ Documentado |
+| Commits totais (sessão) | 9 |
+
+---
+
+## 📨 Resumo dos Commits (Esta Sessão)
+
+```
+5646748 docs: update STATUS-IMPLEMENTACAO with recent fixes
+4dde9ac fix(db): add SQL injection validation to ensure_column
+         fix(power): correct return type for set_power_settings
+277a989 fix(performance): enable minification + fix SkillsPanel prop
+d7cd614 docs: add STATUS-IMPLEMENTACAO.md with implementation tracking
+fe338eb feat(skills): integrate SkillsPanel button in ChatPanel toolbar
+f2b21fd feat(skills): refactor to simplified model with provider tabs
+fe96a27 feat(skills): add unified skills system architecture
+1aa8996 fix(reasoning): add reasoning effort support for OpenAI o1/o3 models
+```
 
 ---
 
