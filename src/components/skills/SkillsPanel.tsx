@@ -10,7 +10,7 @@ import './SkillsPanel.css';
 interface SkillsPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  currentProvider?: 'opencode' | 'codex' | 'claude';
+  activeProvider?: string;
 }
 
 const TABS: { category: SkillCategory; label: string; icon: string }[] = [
@@ -20,7 +20,7 @@ const TABS: { category: SkillCategory; label: string; icon: string }[] = [
   { category: 'custom', label: 'Custom', icon: '✨' },
 ];
 
-export function SkillsPanel({ isOpen, onClose, currentProvider }: SkillsPanelProps) {
+export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProps) {
   const {
     skillsByCategory,
     filteredSkillsByCategory,
@@ -35,7 +35,9 @@ export function SkillsPanel({ isOpen, onClose, currentProvider }: SkillsPanelPro
     error,
   } = useSkills(selectedTab);
 
-  if (!isOpen) return null;
+  // isOpen é controlada pelo parent via renderização condicional
+  // ou pode ser passada diretamente
+  if (isOpen === false) return null;
 
   const skills = filteredSkillsByCategory[selectedTab] || [];
 
@@ -142,7 +144,7 @@ export function SkillsPanel({ isOpen, onClose, currentProvider }: SkillsPanelPro
         <div className="skills-panel-footer">
           <p className="skills-hint">
             {currentProvider 
-              ? `Skills ativas para ${PROVIDER_LABELS[currentProvider]}`
+              ? `Skills ativas para ${PROVIDER_LABELS[activeProvider]}`
               : 'Selecione um provider para usar skills'
             }
           </p>

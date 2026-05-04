@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { SkillsPanel } from "../skills";
 import type { TFunction } from "i18next";
 import {
   Send,
@@ -42,6 +43,7 @@ import {
   Eye,
   Compass,
   BookOpen,
+  Wand2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
@@ -1576,6 +1578,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [isFileDropOver, setIsFileDropOver] = useState(false);
   const [planMode, setPlanMode] = useState(false);
+  const [showSkillsPanel, setShowSkillsPanel] = useState(false);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashMenuQuery, setSlashMenuQuery] = useState("");
   const [slashMenuActiveIndex, setSlashMenuActiveIndex] = useState(0);
@@ -6206,6 +6209,14 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
           )}
         </div>
       </div>
+
+      {/* Skills Panel */}
+      {showSkillsPanel && (
+        <SkillsPanel
+          activeProvider={selectedEngineId}
+          onClose={() => setShowSkillsPanel(false)}
+        />
+      )}
 
       <ConfirmDialog
         open={workspaceOptInPrompt !== null}
