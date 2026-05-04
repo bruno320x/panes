@@ -12,4 +12,4 @@ export { skillsService, SkillsService } from './skillsService';
 export { useSkills } from './useSkills';
 
 // Components
-export { SkillsPanel, SkillsButton } from './SkillsPanel';
+export { SkillsPanel } from '../../components/skills/SkillsPanel';

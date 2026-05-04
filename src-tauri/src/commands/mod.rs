@@ -6,6 +6,7 @@ pub mod git;
 pub mod harness;
 pub mod power;
 pub mod setup;
+pub mod skills;
 pub mod terminal;
 pub mod threads;
 pub mod workspace;

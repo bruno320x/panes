@@ -52,7 +52,7 @@ const PROVIDER_MAP: Record<string, string[]> = {
  */
 export async function fetchModelCatalog(): Promise<ModelDevCatalog> {
   const now = Date.now();
-  if (cache && (now - cacheTime) < CACHE_TTL) {
+  if (cache && (now - cacheTime) < CACHE_TTL_MS) {
     return cache;
   }
 

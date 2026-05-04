@@ -33,7 +33,7 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
     getCountByCategory,
     isLoading,
     error,
-  } = useSkills(selectedTab);
+  } = useSkills();
 
   // isOpen é controlada pelo parent via renderização condicional
   // ou pode ser passada diretamente
