@@ -58,11 +58,16 @@ src-tauri/src/commands/skills.rs  # 256 linhas Rust backend
 - ✅ Integração na toolbar do ChatPanel
 
 ### 2. Reasoning Effort para OpenCode (Tarefa 1)
-**Commit:** `1aa8996`
+**Commit:** `1aa8996` + `4ef3014`
 
 **Problema:** `supportedReasoningEfforts: []` hardcoded para OpenCode.
 
-**Solução:** Adicionado `REASONING_MODELS` map para modelos o1/o3.
+**Solução:** `reasoning_efforts_from_variants()` agora detecta reasoning effort
+usando 3 estratégias:
+
+1. **Explícito:** Campo `reasoningEffort` no variant
+2. **Thinking:** Campo `thinking.type === "enabled"` no variant
+3. **Fallback:** Nome do variant (comportamento original)
 
 ### 3. Plan Mode - Decisão Técnica (Tarefa 2)
 **Arquivo:** `decisions/DECISION-001-PLAN-MODE-OPENCODE.md`
