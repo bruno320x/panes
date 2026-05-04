@@ -47,18 +47,9 @@ fn get_skills_paths(provider: &str) -> Vec<PathBuf> {
             cwd.join(".opencode/skills"),
             home.join(".config/opencode/skills"),
         ],
-        "codex" => vec![
-            cwd.join(".codex/skills"),
-            cwd.join(".claude/skills"),
-        ],
-        "claude" => vec![
-            cwd.join(".claude/skills"),
-            home.join(".claude/skills"),
-        ],
-        "custom" => vec![
-            cwd.join(".skills"),
-            cwd.join(".agents/skills"),
-        ],
+        "codex" => vec![cwd.join(".codex/skills"), cwd.join(".claude/skills")],
+        "claude" => vec![cwd.join(".claude/skills"), home.join(".claude/skills")],
+        "custom" => vec![cwd.join(".skills"), cwd.join(".agents/skills")],
         _ => vec![],
     }
 }
@@ -81,7 +72,12 @@ fn parse_frontmatter(content: &str) -> Option<(serde_json::Value, String)> {
     for line in yaml_str.lines() {
         if let Some(colon_idx) = line.find(':') {
             let key = line[..colon_idx].trim().to_string();
-            let value: serde_json::Value = line[colon_idx + 1..].trim().parse().unwrap_or(serde_json::Value::String(line[colon_idx + 1..].trim().to_string()));
+            let value: serde_json::Value = line[colon_idx + 1..]
+                .trim()
+                .parse()
+                .unwrap_or(serde_json::Value::String(
+                    line[colon_idx + 1..].trim().to_string(),
+                ));
             frontmatter.insert(key, value);
         }
     }
