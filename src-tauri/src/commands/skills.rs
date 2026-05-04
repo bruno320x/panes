@@ -133,35 +133,50 @@ fn scan_directory(dir: &PathBuf) -> std::io::Result<Vec<SkillInfo>> {
         // Ler e parsear SKILL.md
         if let Ok(content) = std::fs::read_to_string(&skill_md) {
             if let Some((fm, _body)) = parse_frontmatter(&content) {
-                let name = fm.get("name")
+                let name = fm
+                    .get("name")
                     .and_then(|v| v.as_str())
                     .unwrap_or(folder_name)
                     .to_string();
                 
-                let description = fm.get("description")
+                let description = fm
+                    .get("description")
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
                 
-                let license = fm.get("license")
+                let license = fm.get("license").and_then(|v| v.as_str()).map(String::from);
+
+                let compatibility = fm
+                    .get("compatibility")
                     .and_then(|v| v.as_str())
                     .map(String::from);
                 
-                let compatibility = fm.get("compatibility")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                
-                let id = format!("{}:{}", dir.parent().unwrap_or(dir).file_name().and_then(|n| n.to_str()).unwrap_or("custom"), folder_name);
+                let id = format!(
+                    "{}:{}",
+                    dir.parent()
+                        .unwrap_or(dir)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("custom"),
+                    folder_name
+                );
                 
                 skills.push(SkillInfo {
                     id,
                     name,
                     description,
-                    provider: dir.parent().unwrap_or(dir).file_name()
+                    provider: dir
+                        .parent()
+                        .unwrap_or(dir)
+                        .file_name()
                         .and_then(|n| n.to_str())
                         .unwrap_or("custom")
                         .to_string(),
-                    category: dir.parent().unwrap_or(dir).file_name()
+                    category: dir
+                        .parent()
+                        .unwrap_or(dir)
+                        .file_name()
                         .and_then(|n| n.to_str())
                         .unwrap_or("custom")
                         .to_string(),
@@ -251,6 +266,5 @@ pub async fn scan_all_skills() -> Result<Vec<ScanResult>, String> {
 
 #[tauri::command]
 pub async fn get_skill_content(path: String) -> Result<String, String> {
-    std::fs::read_to_string(&path)
-        .map_err(|e| e.to_string())
+    std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }
