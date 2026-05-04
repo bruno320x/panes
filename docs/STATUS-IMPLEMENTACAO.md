@@ -192,12 +192,12 @@ src-tauri/src/commands/skills.rs  # 256 linhas Rust backend
 ## 🚀 Prioridades para Próxima Sprint
 
 ### Alta Prioridade
-1. **Corrigir `minify: false`** — Build de produção sem minificação
-2. **Corrigir `setPowerSettings`** — Tipo de retorno errado
+1. **Corrigir `minify: false`** — ✅ JÁ CORRIGIDO (commit 277a989)
+2. **Corrigir `setPowerSettings`** — ✅ JÁ CORRIGIDO (commit 4dde9ac)
 3. **Adicionar índice em `engine_event_logs.thread_id`**
 
 ### Média Prioridade
-4. **Corrigir SQL injection** em `ensure_column()`
+4. **Corrigir SQL injection** — ✅ VALIDADO (commit 4dde9ac)
 5. **Adicionar `React.memo`** em componentes puros
 6. **Corrigir `div role="button"`** — usar `<button>` nativo
 
@@ -205,6 +205,16 @@ src-tauri/src/commands/skills.rs  # 256 linhas Rust backend
 7. Implementar Git rebase/merge
 8. Implementar terminal search
 9. Adicionar skeleton screens
+
+---
+
+## ✅ Bugs Corrigidos Recentemente
+
+| Bug | Severidade | Status | Commit |
+|-----|------------|--------|--------|
+| `minify: false` | 🔴 Crítica | ✅ Corrigido | `277a989` |
+| `setPowerSettings` tipo | 🟡 Moderada | ✅ Corrigido | `4dde9ac` |
+| SQL injection validação | 🟡 Moderada | ✅ Corrigido | `4dde9ac` |
 
 ---
 
