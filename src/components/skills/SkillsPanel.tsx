@@ -2,7 +2,7 @@
 // SkillsPanel - Componente React para exibir e gerenciar skills
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { useSkills } from '../../lib/skills/useSkills';
 import { Skill, SkillCategory, PROVIDER_LABELS, PROVIDER_ICONS } from '../../lib/skills/types';
 import './SkillsPanel.css';
@@ -20,7 +20,12 @@ const TABS: { category: SkillCategory; label: string; icon: string }[] = [
   { category: 'custom', label: 'Custom', icon: '✨' },
 ];
 
+function isSkillCategory(value: string | undefined): value is SkillCategory {
+  return value === 'opencode' || value === 'codex' || value === 'claude' || value === 'custom';
+}
+
 export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProps) {
+  const initialTab = isSkillCategory(activeProvider) ? activeProvider : undefined;
   const {
     skillsByCategory,
     filteredSkillsByCategory,
@@ -33,7 +38,20 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
     getCountByCategory,
     isLoading,
     error,
-  } = useSkills(selectedTab);
+  } = useSkills(initialTab);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // isOpen é controlada pelo parent via renderização condicional
   // ou pode ser passada diretamente
@@ -43,14 +61,20 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
 
   return (
     <div className="skills-panel-overlay" onClick={onClose}>
-      <div className="skills-panel" onClick={e => e.stopPropagation()}>
+      <div
+        className="skills-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="skills-panel-title"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="skills-panel-header">
           <div className="skills-panel-title">
             <span className="skills-panel-icon">🎯</span>
-            <h2>Skills</h2>
+            <h2 id="skills-panel-title">Skills</h2>
           </div>
-          <button className="skills-panel-close" onClick={onClose} aria-label="Fechar">
+          <button type="button" className="skills-panel-close" onClick={onClose} aria-label="Fechar painel de skills">
             ✕
           </button>
         </div>
@@ -65,9 +89,11 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
             className="skills-search-input"
           />
           {searchQuery && (
-            <button 
+            <button
+              type="button"
               className="skills-search-clear"
               onClick={() => setSearchQuery('')}
+              aria-label="Limpar busca"
             >
               ✕
             </button>
@@ -83,8 +109,10 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
             return (
               <button
                 key={tab.category}
+                type="button"
                 className={`skills-tab ${isActive ? 'active' : ''}`}
                 onClick={() => setSelectedTab(tab.category)}
+                aria-pressed={isActive}
               >
                 <span className="tab-icon">{tab.icon}</span>
                 <span className="tab-label">{tab.label}</span>
@@ -186,6 +214,7 @@ function SkillCard({ skill, enabled, onToggle }: SkillCardProps) {
             type="checkbox"
             checked={enabled}
             onChange={onToggle}
+            aria-label={`${enabled ? 'Desativar' : 'Ativar'} skill ${skill.name}`}
           />
           <span className="toggle-slider"></span>
         </label>
@@ -211,7 +240,7 @@ interface SkillsButtonProps {
 
 export function SkillsButton({ onClick, skillCount }: SkillsButtonProps) {
   return (
-    <button className="skills-btn" onClick={onClick} title="Skills">
+    <button type="button" className="skills-btn" onClick={onClick} title="Skills" aria-label="Abrir painel de skills">
       <span className="skills-btn-icon">🎯</span>
       <span className="skills-btn-label">Skills</span>
       {skillCount !== undefined && skillCount > 0 && (

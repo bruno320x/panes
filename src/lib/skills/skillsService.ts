@@ -131,7 +131,7 @@ export class SkillsService {
 
   toggleSkill(id: string): void {
     const skill = this.skills.get(id);
-    if (!skill || !skill.isNative) return;
+    if (!skill) return;
 
     if (this.preferences.disabledSkills.includes(id)) {
       this.preferences.disabledSkills = this.preferences.disabledSkills.filter(s => s !== id);

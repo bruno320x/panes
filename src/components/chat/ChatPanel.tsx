@@ -6213,6 +6213,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
       {/* Skills Panel */}
       {showSkillsPanel && (
         <SkillsPanel
+          isOpen={showSkillsPanel}
           activeProvider={selectedEngineId}
           onClose={() => setShowSkillsPanel(false)}
         />

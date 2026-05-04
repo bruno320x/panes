@@ -10,6 +10,3 @@ export { skillsService, SkillsService } from './skillsService';
 
 // Hook
 export { useSkills } from './useSkills';
-
-// Components
-export { SkillsPanel, SkillsButton } from './SkillsPanel';

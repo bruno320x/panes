@@ -6,7 +6,6 @@ import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
 import { initializeI18n } from "./i18n";
 import { ipc } from "./lib/ipc";
 import { getBrowserLocaleFallback } from "./lib/locale";
-import "./globals.css";
 
 async function bootstrap() {
   let locale = getBrowserLocaleFallback();
