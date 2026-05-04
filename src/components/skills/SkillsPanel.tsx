@@ -180,17 +180,15 @@ function SkillCard({ skill, enabled, onToggle }: SkillCardProps) {
           )}
         </div>
         
-        {/* Toggle switch - só para skills nativas */}
-        {isNative && (
-          <label className="skill-toggle">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={onToggle}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        )}
+        {/* Toggle switch - todas as skills */}
+        <label className="skill-toggle">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={onToggle}
+          />
+          <span className="toggle-slider"></span>
+        </label>
       </div>
       
       <p className="skill-description">{skill.description}</p>
