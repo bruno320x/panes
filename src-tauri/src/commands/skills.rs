@@ -72,12 +72,13 @@ fn parse_frontmatter(content: &str) -> Option<(serde_json::Value, String)> {
     for line in yaml_str.lines() {
         if let Some(colon_idx) = line.find(':') {
             let key = line[..colon_idx].trim().to_string();
-            let value: serde_json::Value = line[colon_idx + 1..]
-                .trim()
-                .parse()
-                .unwrap_or(serde_json::Value::String(
-                    line[colon_idx + 1..].trim().to_string(),
-                ));
+            let value: serde_json::Value =
+                line[colon_idx + 1..]
+                    .trim()
+                    .parse()
+                    .unwrap_or(serde_json::Value::String(
+                        line[colon_idx + 1..].trim().to_string(),
+                    ));
             frontmatter.insert(key, value);
         }
     }
