@@ -2934,10 +2934,91 @@ fn resolve_model_reasoning_effort(
 fn reasoning_efforts_from_variants(
     variants: &HashMap<String, Value>,
 ) -> Vec<ReasoningEffortOption> {
-    let names = variants.keys().map(String::as_str).collect::<Vec<_>>();
-    reasoning_efforts_from_variant_names(&names)
+    let mut efforts: Vec<ReasoningEffortOption> = Vec::new();
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    // Predefined order for reasoning effort levels
+    const ORDER: &[&str] = &["none", "minimal", "low", "medium", "high", "xhigh", "max"];
+
+    for (variant_name, variant_value) in variants {
+        // Skip disabled variants
+        if variant_value.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false) {
+            continue;
+        }
+
+        // Strategy 1: Check for explicit reasoningEffort field
+        if let Some(reasoning_effort) = variant_value.get("reasoningEffort")
+            .and_then(|v| v.as_str())
+        {
+            let effort_lower = reasoning_effort.to_lowercase();
+            if ORDER.contains(&effort_lower.as_str()) && !seen.contains(&effort_lower) {
+                seen.insert(effort_lower.clone());
+                efforts.push(ReasoningEffortOption {
+                    reasoning_effort: effort_lower,
+                    description: format!("OpenCode {} variant ({variant_name})", reasoning_effort),
+                });
+                continue;
+            }
+        }
+
+        // Strategy 2: Check for thinking.type === "enabled"
+        if let Some(thinking) = variant_value.get("thinking") {
+            if thinking.get("type")
+                .and_then(|t| t.as_str())
+                .map(|t| t.eq_ignore_ascii_case("enabled"))
+                .unwrap_or(false)
+            {
+                // Infer reasoning effort from variant name if it matches known patterns
+                let variant_lower = variant_name.to_lowercase();
+                for effort in ORDER.iter() {
+                    if variant_lower.contains(effort) && !seen.contains(&effort.to_string()) {
+                        seen.insert(effort.to_string());
+                        efforts.push(ReasoningEffortOption {
+                            reasoning_effort: effort.to_string(),
+                            description: format!("OpenCode {effort} variant ({variant_name})"),
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Strategy 3: Fallback to pure name matching for unmatched variants
+    for variant_name in variants.keys() {
+        let variant_lower = variant_name.to_lowercase();
+        // Check if this variant name directly matches a known reasoning effort name
+        if ORDER.contains(&variant_lower.as_str()) && !seen.contains(&variant_lower) {
+            // Only add if this variant wasn't already processed via content
+            let has_explicit_content = variants.get(variant_name)
+                .map(|v| {
+                    v.get("reasoningEffort").is_some()
+                    || v.get("thinking").is_some()
+                    || v.get("disabled").is_some()
+                })
+                .unwrap_or(false);
+
+            if !has_explicit_content {
+                seen.insert(variant_lower.clone());
+                efforts.push(ReasoningEffortOption {
+                    reasoning_effort: variant_lower,
+                    description: format!("OpenCode {variant_name} variant"),
+                });
+            }
+        }
+    }
+
+    // Sort by predefined order
+    efforts.sort_by(|a, b| {
+        let a_idx = ORDER.iter().position(|&x| x == a.reasoning_effort).unwrap_or(99);
+        let b_idx = ORDER.iter().position(|&x| x == b.reasoning_effort).unwrap_or(99);
+        a_idx.cmp(&b_idx)
+    });
+
+    efforts
 }
 
+#[allow(dead_code)]
 fn reasoning_efforts_from_variant_names(names: &[&str]) -> Vec<ReasoningEffortOption> {
     const ORDER: &[&str] = &["none", "minimal", "low", "medium", "high", "xhigh", "max"];
     ORDER
