@@ -4,6 +4,17 @@ import type {
   OpenCodeProviderAuthResponse,
   OpenCodeProviderListResponse,
 } from "../../types";
+import { fetchModelCatalog } from "../../lib/modelsApi";
+
+// Provider IDs no Models.dev vs Panes
+const MODELS_DEV_PROVIDER_MAP: Record<string, string[]> = {
+  openai: ["openai"],
+  anthropic: ["anthropic"],
+  google: ["google", "gemini"],
+  opencode: ["opencode"],
+  ollama: ["ollama"],
+  local: ["local"],
+};
 
 export interface ProviderGroup {
   providerId: string;
@@ -50,19 +61,52 @@ export function normalizeProviderId(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-// Modelos que suportam reasoning effort
-const REASONING_MODELS: Record<string, string[]> = {
+// Fallback para modelos hardcoded (usado quando API não disponível)
+const REASONING_MODELS_FALLBACK: Record<string, string[]> = {
   openai: ["o1", "o1-mini", "o1-preview", "o3", "o3-mini", "o4-mini", "o4"],
   anthropic: ["claude-sonnet-4-7", "claude-opus-4-5"],
 };
 
 /**
- * Verifica se um modelo suporta reasoning effort baseado no provider e modelId.
+ * Verifica se um modelo suporta reasoning effort (busca no Models.dev ou fallback hardcoded).
+ */
+async function supportsReasoningEffortAsync(
+  providerId: string,
+  modelId: string
+): Promise<boolean> {
+  const catalog = await fetchModelCatalog();
+  const providerIds = MODELS_DEV_PROVIDER_MAP[providerId] ?? [providerId];
+  const modelLower = modelId.toLowerCase();
+
+  for (const pid of providerIds) {
+    const provider = catalog[pid];
+    if (!provider) continue;
+
+    const modelKey = Object.keys(provider.models).find(
+      (key) =>
+        key.toLowerCase() === modelLower ||
+        modelLower.includes(key.toLowerCase()) ||
+        key.toLowerCase().includes(modelLower)
+    );
+
+    if (modelKey) {
+      return provider.models[modelKey].reasoning;
+    }
+  }
+
+  // Fallback hardcoded
+  const fallback = REASONING_MODELS_FALLBACK[providerId];
+  if (!fallback) return false;
+  return fallback.some((m) => modelLower.includes(m.toLowerCase()));
+}
+
+/**
+ * Versão síncrona com fallback hardcoded (para uso em contextos não-async)
  */
 function supportsReasoningEffort(providerId: string, modelId: string): boolean {
   const providerLower = providerId.toLowerCase();
   const modelLower = modelId.toLowerCase();
-  const models = REASONING_MODELS[providerLower];
+  const models = REASONING_MODELS_FALLBACK[providerLower];
   if (!models) return false;
   return models.some((m) => modelLower.includes(m.toLowerCase()));
 }
@@ -70,7 +114,46 @@ function supportsReasoningEffort(providerId: string, modelId: string): boolean {
 /**
  * Retorna a lista de opções de reasoning effort para modelos que suportam.
  */
-function getReasoningEffortsForModel(): Array<{ reasoningEffort: string; description: string }> {
+function getReasoningEffortsForModel(
+  providerId: string,
+  modelId: string
+): Array<{ reasoningEffort: string; description: string }> {
+  const modelLower = modelId.toLowerCase();
+
+  // OpenAI o1/o3
+  if (
+    providerId === "openai" &&
+    (modelLower.includes("o1") || modelLower.includes("o3") || modelLower.includes("o4"))
+  ) {
+    return [
+      { reasoningEffort: "low", description: "Fast" },
+      { reasoningEffort: "medium", description: "Balanced" },
+      { reasoningEffort: "high", description: "Deep" },
+    ];
+  }
+
+  // Anthropic
+  if (
+    providerId === "anthropic" &&
+    (modelLower.includes("claude-sonnet-4") || modelLower.includes("claude-opus-4"))
+  ) {
+    return [
+      { reasoningEffort: "low", description: "Speed" },
+      { reasoningEffort: "medium", description: "Balanced" },
+      { reasoningEffort: "high", description: "Depth" },
+    ];
+  }
+
+  // Google Gemini
+  if (providerId === "google" && modelLower.includes("gemini")) {
+    return [
+      { reasoningEffort: "low", description: "Fast" },
+      { reasoningEffort: "medium", description: "Balanced" },
+      { reasoningEffort: "high", description: "Deep" },
+    ];
+  }
+
+  // Default
   return [
     { reasoningEffort: "low", description: "Fast" },
     { reasoningEffort: "medium", description: "Balanced" },
@@ -95,7 +178,7 @@ function syntheticModel(
     attachmentModalities: [],
     supportsPersonality: false,
     defaultReasoningEffort: "medium",
-    supportedReasoningEfforts: actuallySupports ? getReasoningEffortsForModel() : [],
+    supportedReasoningEfforts: actuallySupports ? getReasoningEffortsForModel(providerId, modelId) : [],
   };
 }
 
