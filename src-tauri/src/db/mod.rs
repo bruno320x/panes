@@ -1043,42 +1043,40 @@ fn is_valid_sql_identifier(s: &str) -> bool {
 fn is_valid_sql_type(s: &str) -> bool {
     // Allow common SQLite types and their constraints
     let normalized = s.to_uppercase();
-    normalized
-        .split_whitespace()
-        .all(|word| {
-            matches!(
-                word,
-                "TEXT"
-                    | "INTEGER"
-                    | "REAL"
-                    | "BLOB"
-                    | "NUMERIC"
-                    | "BOOLEAN"
-                    | "DATE"
-                    | "DATETIME"
-                    | "TIMESTAMP"
-                    | "VARCHAR"
-                    | "CHAR"
-                    | "BIGINT"
-                    | "SMALLINT"
-                    | "TINYINT"
-                    | "FLOAT"
-                    | "DOUBLE"
-                    | "DECIMAL"
-                    | "NOT"
-                    | "NULL"
-                    | "DEFAULT"
-                    | "PRIMARY"
-                    | "KEY"
-                    | "UNIQUE"
-                    | "AUTOINCREMENT"
-                    | "REFERENCES"
-                    | "CHECK"
-                    | "CONSTRAINT"
-                    | "INDEX"
-            ) || word.parse::<u64>().is_ok() // numbers like VARCHAR(255)
-                || word.starts_with('(') && word.ends_with(')') // (1), (255), etc.
-        })
+    normalized.split_whitespace().all(|word| {
+        matches!(
+            word,
+            "TEXT"
+                | "INTEGER"
+                | "REAL"
+                | "BLOB"
+                | "NUMERIC"
+                | "BOOLEAN"
+                | "DATE"
+                | "DATETIME"
+                | "TIMESTAMP"
+                | "VARCHAR"
+                | "CHAR"
+                | "BIGINT"
+                | "SMALLINT"
+                | "TINYINT"
+                | "FLOAT"
+                | "DOUBLE"
+                | "DECIMAL"
+                | "NOT"
+                | "NULL"
+                | "DEFAULT"
+                | "PRIMARY"
+                | "KEY"
+                | "UNIQUE"
+                | "AUTOINCREMENT"
+                | "REFERENCES"
+                | "CHECK"
+                | "CONSTRAINT"
+                | "INDEX"
+        ) || word.parse::<u64>().is_ok() // numbers like VARCHAR(255)
+            || word.starts_with('(') && word.ends_with(')') // (1), (255), etc.
+    })
 }
 
 fn table_has_column(conn: &Connection, table: &str, column: &str) -> anyhow::Result<bool> {

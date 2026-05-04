@@ -2942,12 +2942,17 @@ fn reasoning_efforts_from_variants(
 
     for (variant_name, variant_value) in variants {
         // Skip disabled variants
-        if variant_value.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false) {
+        if variant_value
+            .get("disabled")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
             continue;
         }
 
         // Strategy 1: Check for explicit reasoningEffort field
-        if let Some(reasoning_effort) = variant_value.get("reasoningEffort")
+        if let Some(reasoning_effort) = variant_value
+            .get("reasoningEffort")
             .and_then(|v| v.as_str())
         {
             let effort_lower = reasoning_effort.to_lowercase();
@@ -2963,7 +2968,8 @@ fn reasoning_efforts_from_variants(
 
         // Strategy 2: Check for thinking.type === "enabled"
         if let Some(thinking) = variant_value.get("thinking") {
-            if thinking.get("type")
+            if thinking
+                .get("type")
                 .and_then(|t| t.as_str())
                 .map(|t| t.eq_ignore_ascii_case("enabled"))
                 .unwrap_or(false)
@@ -2990,11 +2996,12 @@ fn reasoning_efforts_from_variants(
         // Check if this variant name directly matches a known reasoning effort name
         if ORDER.contains(&variant_lower.as_str()) && !seen.contains(&variant_lower) {
             // Only add if this variant wasn't already processed via content
-            let has_explicit_content = variants.get(variant_name)
+            let has_explicit_content = variants
+                .get(variant_name)
                 .map(|v| {
                     v.get("reasoningEffort").is_some()
-                    || v.get("thinking").is_some()
-                    || v.get("disabled").is_some()
+                        || v.get("thinking").is_some()
+                        || v.get("disabled").is_some()
                 })
                 .unwrap_or(false);
 
@@ -3010,8 +3017,14 @@ fn reasoning_efforts_from_variants(
 
     // Sort by predefined order
     efforts.sort_by(|a, b| {
-        let a_idx = ORDER.iter().position(|&x| x == a.reasoning_effort).unwrap_or(99);
-        let b_idx = ORDER.iter().position(|&x| x == b.reasoning_effort).unwrap_or(99);
+        let a_idx = ORDER
+            .iter()
+            .position(|&x| x == a.reasoning_effort)
+            .unwrap_or(99);
+        let b_idx = ORDER
+            .iter()
+            .position(|&x| x == b.reasoning_effort)
+            .unwrap_or(99);
         a_idx.cmp(&b_idx)
     });
 
