@@ -143,8 +143,8 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
         {/* Footer */}
         <div className="skills-panel-footer">
           <p className="skills-hint">
-            {currentProvider 
-              ? `Skills ativas para ${PROVIDER_LABELS[activeProvider]}`
+            {activeProvider 
+              ? `Skills ativas para ${PROVIDER_LABELS[activeProvider as keyof typeof PROVIDER_LABELS]}`
               : 'Selecione um provider para usar skills'
             }
           </p>
