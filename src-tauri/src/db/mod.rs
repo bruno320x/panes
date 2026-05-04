@@ -1014,6 +1014,15 @@ fn ensure_column(
     column: &str,
     sql_type: &str,
 ) -> anyhow::Result<()> {
+    // Validate identifiers to prevent SQL injection (defense in depth)
+    // These are hardcoded in callers, but we validate anyway
+    if !is_valid_sql_identifier(table) || !is_valid_sql_identifier(column) {
+        return Err(anyhow::anyhow!("Invalid table or column name"));
+    }
+    if !is_valid_sql_type(sql_type) {
+        return Err(anyhow::anyhow!("Invalid SQL type"));
+    }
+
     if table_has_column(conn, table, column)? {
         return Ok(());
     }
@@ -1025,6 +1034,51 @@ fn ensure_column(
     .with_context(|| format!("failed to add {table}.{column} column"))?;
 
     Ok(())
+}
+
+fn is_valid_sql_identifier(s: &str) -> bool {
+    !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_')
+}
+
+fn is_valid_sql_type(s: &str) -> bool {
+    // Allow common SQLite types and their constraints
+    let normalized = s.to_uppercase();
+    normalized
+        .split_whitespace()
+        .all(|word| {
+            matches!(
+                word,
+                "TEXT"
+                    | "INTEGER"
+                    | "REAL"
+                    | "BLOB"
+                    | "NUMERIC"
+                    | "BOOLEAN"
+                    | "DATE"
+                    | "DATETIME"
+                    | "TIMESTAMP"
+                    | "VARCHAR"
+                    | "CHAR"
+                    | "BIGINT"
+                    | "SMALLINT"
+                    | "TINYINT"
+                    | "FLOAT"
+                    | "DOUBLE"
+                    | "DECIMAL"
+                    | "NOT"
+                    | "NULL"
+                    | "DEFAULT"
+                    | "PRIMARY"
+                    | "KEY"
+                    | "UNIQUE"
+                    | "AUTOINCREMENT"
+                    | "REFERENCES"
+                    | "CHECK"
+                    | "CONSTRAINT"
+                    | "INDEX"
+            ) || word.parse::<u64>().is_ok() // numbers like VARCHAR(255)
+                || word.starts_with('(') && word.ends_with(')') // (1), (255), etc.
+        })
 }
 
 fn table_has_column(conn: &Connection, table: &str, column: &str) -> anyhow::Result<bool> {

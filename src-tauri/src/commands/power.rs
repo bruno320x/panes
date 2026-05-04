@@ -144,7 +144,7 @@ pub async fn get_power_settings(_state: State<'_, AppState>) -> Result<PowerSett
 pub async fn set_power_settings(
     state: State<'_, AppState>,
     settings: PowerSettingsInput,
-) -> Result<KeepAwakeStateDto, String> {
+) -> Result<PowerSettingsDto, String> {
     // Validate battery threshold
     if let Some(threshold) = settings.battery_threshold {
         if threshold == 0 || threshold >= 100 {
@@ -195,8 +195,16 @@ pub async fn set_power_settings(
         ));
     }
 
-    let runtime = state.keep_awake.status().await;
-    Ok(dto_from_runtime(runtime, settings.keep_awake_enabled))
+    // Return the settings that were saved
+    Ok(PowerSettingsDto {
+        keep_awake_enabled: settings.keep_awake_enabled,
+        prevent_display_sleep: settings.prevent_display_sleep,
+        prevent_screen_saver: settings.prevent_screen_saver,
+        ac_only_mode: settings.ac_only_mode,
+        battery_threshold: settings.battery_threshold,
+        session_duration_secs: settings.session_duration_secs,
+        prevent_closed_display_sleep: settings.prevent_closed_display_sleep,
+    })
 }
 
 #[derive(Debug, Clone, Serialize)]
