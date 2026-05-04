@@ -1,0 +1,1294 @@
+{
+  "/tmp/panes/vite.config.ts": {
+    "mtime": 1777842052.5929806,
+    "hash": "299ce55c16e39007e0aae6bec418ed41"
+  },
+  "/tmp/panes/landing-page/i18n.js": {
+    "mtime": 1777842052.3209805,
+    "hash": "a112ff3a40104dd73641f7c89a5df2ce"
+  },
+  "/tmp/panes/scripts/build-claude-sidecar.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "2038c68ce05ce1282fd9d68bc6c0eb7b"
+  },
+  "/tmp/panes/scripts/build-desktop.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "5d088ad949e74c581ed9cad0e3aacc66"
+  },
+  "/tmp/panes/scripts/check-codex-app-server-parity.mjs": {
+    "mtime": 1777842066.9929805,
+    "hash": "5c7f3d1474a0b9dfadceaecc5b95a683"
+  },
+  "/tmp/panes/scripts/generate-homebrew-cask.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "6be8f0cce7f98dd1492c901b36bfbe4d"
+  },
+  "/tmp/panes/scripts/generate-update-manifest.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "c4cdd8566453c56da68de8addbf0a4e9"
+  },
+  "/tmp/panes/scripts/prune-local-artifacts.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "eeb56f1a9629d505f9b054706734e41a"
+  },
+  "/tmp/panes/scripts/should-release.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "ca859b88ff856a82b54e8d698e551b51"
+  },
+  "/tmp/panes/scripts/sync-versions.mjs": {
+    "mtime": 1777842052.3329806,
+    "hash": "86042c0cddf9386e76d8edbb723e775a"
+  },
+  "/tmp/panes/scripts/lib/homebrew-cask.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "93bfc33c0c64a0e1e369ae1980870af2"
+  },
+  "/tmp/panes/scripts/lib/update-manifest.mjs": {
+    "mtime": 1777842052.3289807,
+    "hash": "dc5df64ff241523f98326038a810dcd9"
+  },
+  "/tmp/panes/src-tauri/build.rs": {
+    "mtime": 1777842052.3329806,
+    "hash": "97e18a43c7b636a5e2f076fd4b8e4efb"
+  },
+  "/tmp/panes/src-tauri/helper/keepawake-helper.swift": {
+    "mtime": 1777842052.3369806,
+    "hash": "0758e882532179e89fb2a447ea8c87e8"
+  },
+  "/tmp/panes/src-tauri/helper/keepawake-registrar.swift": {
+    "mtime": 1777842052.3369806,
+    "hash": "178712b26b0bfc936e104e1824efb27c"
+  },
+  "/tmp/panes/src-tauri/sidecar-dist/claude-agent-sdk-server.mjs": {
+    "mtime": 1777842052.3769805,
+    "hash": "7ec15a11ec535843444fd87e9f55ec20"
+  },
+  "/tmp/panes/src-tauri/sidecar/claude-agent-sdk-server.mjs": {
+    "mtime": 1777842052.3769805,
+    "hash": "7ec15a11ec535843444fd87e9f55ec20"
+  },
+  "/tmp/panes/src-tauri/src/fs_ops.rs": {
+    "mtime": 1777842052.4089806,
+    "hash": "ab1974032bf2103198ed7d00b4490a8f"
+  },
+  "/tmp/panes/src-tauri/src/lib.rs": {
+    "mtime": 1777842102.9569805,
+    "hash": "7cb775dc339fd253c5c55a5efce6e2ea"
+  },
+  "/tmp/panes/src-tauri/src/linux_appimage.rs": {
+    "mtime": 1777842052.4169805,
+    "hash": "014e80797e25310404daf8e17141e5b1"
+  },
+  "/tmp/panes/src-tauri/src/linux_webkit.rs": {
+    "mtime": 1777842052.4169805,
+    "hash": "c131429fbf36c87aaf00dbd81bbecbb9"
+  },
+  "/tmp/panes/src-tauri/src/locale.rs": {
+    "mtime": 1777842052.4169805,
+    "hash": "f536f5eb9f15cd5ff2ce10eaedcf9545"
+  },
+  "/tmp/panes/src-tauri/src/main.rs": {
+    "mtime": 1777842052.4169805,
+    "hash": "a9dbe68c2c93840bfd8f6a97eaecb861"
+  },
+  "/tmp/panes/src-tauri/src/models.rs": {
+    "mtime": 1777842102.9569805,
+    "hash": "6c144d18893d06d26c3e02130d080312"
+  },
+  "/tmp/panes/src-tauri/src/path_utils.rs": {
+    "mtime": 1777842052.4169805,
+    "hash": "56122092c0a695554ab2fd2d31449645"
+  },
+  "/tmp/panes/src-tauri/src/process_utils.rs": {
+    "mtime": 1777842052.4249806,
+    "hash": "6cb552168844ec58433ac76fc1f03585"
+  },
+  "/tmp/panes/src-tauri/src/runtime_env.rs": {
+    "mtime": 1777842052.4249806,
+    "hash": "189be8d3cc56a2933ff0f4801953a530"
+  },
+  "/tmp/panes/src-tauri/src/state.rs": {
+    "mtime": 1777842052.4329805,
+    "hash": "4b66fbce86c0c30a9f4bbce0d29a7fd2"
+  },
+  "/tmp/panes/src-tauri/src/terminal_notifications.rs": {
+    "mtime": 1777842052.4369805,
+    "hash": "518029c492ea9e2bafaca8a7632cc304"
+  },
+  "/tmp/panes/src-tauri/src/workspace_startup.rs": {
+    "mtime": 1777842052.4369805,
+    "hash": "a8119f56367a6d959922a766fc27212c"
+  },
+  "/tmp/panes/src-tauri/src/commands/app.rs": {
+    "mtime": 1777842052.3769805,
+    "hash": "a3f5548bc53ee287b86dac2f773d8ab3"
+  },
+  "/tmp/panes/src-tauri/src/commands/chat.rs": {
+    "mtime": 1777842067.0009806,
+    "hash": "a7dc9dc2f962aa6452e906b0f54c7ac1"
+  },
+  "/tmp/panes/src-tauri/src/commands/engines.rs": {
+    "mtime": 1777842102.9489806,
+    "hash": "098487b825d1bf380b9af0ee6b3c0cc5"
+  },
+  "/tmp/panes/src-tauri/src/commands/files.rs": {
+    "mtime": 1777842052.3809805,
+    "hash": "fba7febd84f4b2a38ae6483a3e5c3d07"
+  },
+  "/tmp/panes/src-tauri/src/commands/git.rs": {
+    "mtime": 1777842052.3849807,
+    "hash": "38c9a7cb8f660774e2aed5915da1235b"
+  },
+  "/tmp/panes/src-tauri/src/commands/harness.rs": {
+    "mtime": 1777842052.3849807,
+    "hash": "b43d4fac5f6255b437a80f964cdd1e27"
+  },
+  "/tmp/panes/src-tauri/src/commands/mod.rs": {
+    "mtime": 1777842052.3849807,
+    "hash": "7e8ba176d6c33475817cfbcd4491e63c"
+  },
+  "/tmp/panes/src-tauri/src/commands/power.rs": {
+    "mtime": 1777842052.3849807,
+    "hash": "ad1476f558ff08fd4abf4a7067b1bab1"
+  },
+  "/tmp/panes/src-tauri/src/commands/setup.rs": {
+    "mtime": 1777842052.3849807,
+    "hash": "9df8e666ef0629d091e4c14b693b810c"
+  },
+  "/tmp/panes/src-tauri/src/commands/terminal.rs": {
+    "mtime": 1777842052.3849807,
+    "hash": "d089ecf9fb1a39bbf0aa668ab2cb238e"
+  },
+  "/tmp/panes/src-tauri/src/commands/threads.rs": {
+    "mtime": 1777842102.9529805,
+    "hash": "760248595c25fa3189b3f35f3b046b34"
+  },
+  "/tmp/panes/src-tauri/src/commands/workspace.rs": {
+    "mtime": 1777842052.3889806,
+    "hash": "4a3852c356bd2b63861ff428e76263ff"
+  },
+  "/tmp/panes/src-tauri/src/config/app_config.rs": {
+    "mtime": 1777842052.3889806,
+    "hash": "252f2daf743b1eda784db3fc53ea30e3"
+  },
+  "/tmp/panes/src-tauri/src/config/mod.rs": {
+    "mtime": 1777842052.3889806,
+    "hash": "1251bf6485464e115cfe2ed67481bc90"
+  },
+  "/tmp/panes/src-tauri/src/db/actions.rs": {
+    "mtime": 1777842052.3929806,
+    "hash": "bcbce4008886cceadf482e450a6edc11"
+  },
+  "/tmp/panes/src-tauri/src/db/messages.rs": {
+    "mtime": 1777842052.3929806,
+    "hash": "ece95f7ec023a2072263983d3b987887"
+  },
+  "/tmp/panes/src-tauri/src/db/mod.rs": {
+    "mtime": 1777842052.3929806,
+    "hash": "b4a4e25e05e864e3e4d20df7b3b7d8a8"
+  },
+  "/tmp/panes/src-tauri/src/db/repos.rs": {
+    "mtime": 1777842052.3929806,
+    "hash": "8b275512a4827d9045f714bbbb64e531"
+  },
+  "/tmp/panes/src-tauri/src/db/threads.rs": {
+    "mtime": 1777842052.3969805,
+    "hash": "1c5b0a9e0181eb26b6fddabad1e77190"
+  },
+  "/tmp/panes/src-tauri/src/db/workspaces.rs": {
+    "mtime": 1777842052.3969805,
+    "hash": "3e171aa4202417f11d802b55d22cd3c3"
+  },
+  "/tmp/panes/src-tauri/src/db/migrations/001_initial.sql": {
+    "mtime": 1777842052.3929806,
+    "hash": "6534525de5aad12780f28b762ad022a7"
+  },
+  "/tmp/panes/src-tauri/src/engines/api_direct.rs": {
+    "mtime": 1777842052.3969805,
+    "hash": "facf9cd3d40f4bd8df4f6874d32eaf26"
+  },
+  "/tmp/panes/src-tauri/src/engines/claude_sidecar.rs": {
+    "mtime": 1777842052.4009805,
+    "hash": "5b3ecd69497ace2aa6f56984565a33f0"
+  },
+  "/tmp/panes/src-tauri/src/engines/codex.rs": {
+    "mtime": 1777842067.0129805,
+    "hash": "908543b99f377c4870c415537bfa65a8"
+  },
+  "/tmp/panes/src-tauri/src/engines/codex_event_mapper.rs": {
+    "mtime": 1777842052.4049807,
+    "hash": "e80aeb7bf11da99bd6ba77b9d7937e28"
+  },
+  "/tmp/panes/src-tauri/src/engines/codex_protocol.rs": {
+    "mtime": 1777842052.4049807,
+    "hash": "31cf2bc3dcbfc154c8ee579df996732a"
+  },
+  "/tmp/panes/src-tauri/src/engines/codex_transport.rs": {
+    "mtime": 1777842067.0129805,
+    "hash": "fb419fdbb3d8301b5ed25f1ed6ec962d"
+  },
+  "/tmp/panes/src-tauri/src/engines/events.rs": {
+    "mtime": 1777842052.4049807,
+    "hash": "f534b61f7a6280b475cf4902e68cd9ab"
+  },
+  "/tmp/panes/src-tauri/src/engines/mod.rs": {
+    "mtime": 1777842102.9529805,
+    "hash": "514ce66cc8159834c5a2d6e2230c5ffd"
+  },
+  "/tmp/panes/src-tauri/src/engines/opencode.rs": {
+    "mtime": 1777842102.9529805,
+    "hash": "96fdc2a5b6fbc220eb476d7a51296671"
+  },
+  "/tmp/panes/src-tauri/src/git/cli_fallback.rs": {
+    "mtime": 1777842052.4089806,
+    "hash": "6e0c52e0196ee3e3fc01c0d3fb0487d7"
+  },
+  "/tmp/panes/src-tauri/src/git/mod.rs": {
+    "mtime": 1777842052.4129806,
+    "hash": "42dae2182a149f1841f3d3cc371eba4c"
+  },
+  "/tmp/panes/src-tauri/src/git/multi_repo.rs": {
+    "mtime": 1777842052.4129806,
+    "hash": "a8264c83795f11026dcd3add5bd95d4d"
+  },
+  "/tmp/panes/src-tauri/src/git/repo.rs": {
+    "mtime": 1777842052.4129806,
+    "hash": "afd9268a52bfb555eebdc49ed3c3e850"
+  },
+  "/tmp/panes/src-tauri/src/git/watcher.rs": {
+    "mtime": 1777842052.4129806,
+    "hash": "a86887f21039beae867eccbc770d5883"
+  },
+  "/tmp/panes/src-tauri/src/git/worktree.rs": {
+    "mtime": 1777842052.4129806,
+    "hash": "a6b94bda859754610aadefcc71fe3cae"
+  },
+  "/tmp/panes/src-tauri/src/power/macos.rs": {
+    "mtime": 1777842052.4209807,
+    "hash": "d9c820901b134feca733f6203bfdd81a"
+  },
+  "/tmp/panes/src-tauri/src/power/macos_helper.rs": {
+    "mtime": 1777842052.4209807,
+    "hash": "456d766467d3ed62f29c7d1c398b7f3d"
+  },
+  "/tmp/panes/src-tauri/src/power/mod.rs": {
+    "mtime": 1777842102.9569805,
+    "hash": "3ec093b150962e52127a705c109a00b7"
+  },
+  "/tmp/panes/src-tauri/src/power/monitor.rs": {
+    "mtime": 1777842052.4249806,
+    "hash": "d0026b694c703bea6f3ba451b4741eaa"
+  },
+  "/tmp/panes/src-tauri/src/sidecars/claude_agent/src/main.ts": {
+    "mtime": 1777842052.4289806,
+    "hash": "672447267dd58bbe395388fae69388c5"
+  },
+  "/tmp/panes/src-tauri/src/sidecars/claude_agent/src/protocol.ts": {
+    "mtime": 1777842052.4289806,
+    "hash": "c54665f232f467612688dddfb79a6522"
+  },
+  "/tmp/panes/src-tauri/src/sidecars/claude_agent/src/runner.ts": {
+    "mtime": 1777842052.4329805,
+    "hash": "8bac6f7c23b05309a0bdfb50dff1ca20"
+  },
+  "/tmp/panes/src-tauri/src/terminal/mod.rs": {
+    "mtime": 1777842052.4329805,
+    "hash": "833ac4e5c33f2eeac5c766e539ce6197"
+  },
+  "/tmp/panes/src-tauri/src/terminal/osc_notifications.rs": {
+    "mtime": 1777842052.4329805,
+    "hash": "ddaaacc4d426d9040ed9f1d18eae9253"
+  },
+  "/tmp/panes/src/App.tsx": {
+    "mtime": 1777842052.4369805,
+    "hash": "14243ae2b69752dd90d89ef817efef84"
+  },
+  "/tmp/panes/src/diff.d.ts": {
+    "mtime": 1777842052.4889805,
+    "hash": "313f2d8eb95c790b3b19827bc6166f61"
+  },
+  "/tmp/panes/src/main.tsx": {
+    "mtime": 1777842052.5529807,
+    "hash": "f89e6825d0c14f1e198f19821749d05c"
+  },
+  "/tmp/panes/src/types.ts": {
+    "mtime": 1777842102.9889805,
+    "hash": "e1b1da609885504c13effd86f2e68504"
+  },
+  "/tmp/panes/src/components/chat/ChatCommandPanel.tsx": {
+    "mtime": 1777842102.9609807,
+    "hash": "23d49d4a42125f418a06436f124c959f"
+  },
+  "/tmp/panes/src/components/chat/ChatPanel.tsx": {
+    "mtime": 1777842102.9649806,
+    "hash": "ae385521d4744326f789f681e8d9eef9"
+  },
+  "/tmp/panes/src/components/chat/ChatSlashMenu.tsx": {
+    "mtime": 1777842052.4449806,
+    "hash": "a656505fdb568694cb4ef0ee75071c17"
+  },
+  "/tmp/panes/src/components/chat/CodexConfigPicker.tsx": {
+    "mtime": 1777842052.4449806,
+    "hash": "b4a8521d394a3515be53d087d919eec7"
+  },
+  "/tmp/panes/src/components/chat/CodexReviewPicker.tsx": {
+    "mtime": 1777842052.4449806,
+    "hash": "2a4b07a0b91b1266835ecda8700e475f"
+  },
+  "/tmp/panes/src/components/chat/CodexRuntimePicker.tsx": {
+    "mtime": 1777842052.4449806,
+    "hash": "70ef9cc206716ad97f4eee9504a0dd0d"
+  },
+  "/tmp/panes/src/components/chat/CodexThreadPicker.tsx": {
+    "mtime": 1777842052.4449806,
+    "hash": "13a8fab88b936679ae87e903cdede0e1"
+  },
+  "/tmp/panes/src/components/chat/MarkdownContent.tsx": {
+    "mtime": 1777842052.4449806,
+    "hash": "8c483100a86683f0c48c44096e1fe8d0"
+  },
+  "/tmp/panes/src/components/chat/MessageBlocks.tsx": {
+    "mtime": 1777842067.0369806,
+    "hash": "1650a28bee8d0f06440f27a430988b53"
+  },
+  "/tmp/panes/src/components/chat/ModelPicker.test.ts": {
+    "mtime": 1777842052.4449806,
+    "hash": "6bf7cf1d61b7f04e99d73417e49f7c76"
+  },
+  "/tmp/panes/src/components/chat/ModelPicker.tsx": {
+    "mtime": 1777842102.9649806,
+    "hash": "23f5950e81aa1314a3f89e71c7ee00c7"
+  },
+  "/tmp/panes/src/components/chat/OpenCodeAgentPicker.tsx": {
+    "mtime": 1777842102.9649806,
+    "hash": "8712f11bf373f8bd0fb28a98bc74daac"
+  },
+  "/tmp/panes/src/components/chat/AttachmentChip.tsx": {
+    "mtime": 1777842067.0289805,
+    "hash": "887cb7ad4d4546403a3d3d1905254e04"
+  },
+  "/tmp/panes/src/components/chat/PermissionPicker.tsx": {
+    "mtime": 1777842052.4489806,
+    "hash": "39aa6649140e1cc5cdeceaa7f84eea4f"
+  },
+  "/tmp/panes/src/components/chat/ToolInputQuestionnaire.tsx": {
+    "mtime": 1777842052.4489806,
+    "hash": "1ea6aa75dba7cfa62dcb5dfbcf8e6920"
+  },
+  "/tmp/panes/src/components/chat/chatInputShortcuts.test.ts": {
+    "mtime": 1777842052.4489806,
+    "hash": "d8739ff19a13ad813ed9d2b32310e0ab"
+  },
+  "/tmp/panes/src/components/chat/chatInputShortcuts.ts": {
+    "mtime": 1777842052.4489806,
+    "hash": "8282ac113b2e46d88d9dc476735c6c08"
+  },
+  "/tmp/panes/src/components/chat/claudeToolInputGating.test.ts": {
+    "mtime": 1777842052.4489806,
+    "hash": "a353ebddb6f9d8705580c5f64cbf0a9c"
+  },
+  "/tmp/panes/src/components/chat/codexInputItems.test.ts": {
+    "mtime": 1777842052.4489806,
+    "hash": "6642803e3ec1319103469af227bc73dd"
+  },
+  "/tmp/panes/src/components/chat/codexInputItems.ts": {
+    "mtime": 1777842052.4489806,
+    "hash": "21c815ef0eb6a6189df38cee717ed5ed"
+  },
+  "/tmp/panes/src/components/chat/composerRuntime.test.ts": {
+    "mtime": 1777842052.4489806,
+    "hash": "92478ffc4c85226750be32b4e78e53b1"
+  },
+  "/tmp/panes/src/components/chat/composerRuntime.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "e443d9809814a012e91844733395687a"
+  },
+  "/tmp/panes/src/components/chat/engineCapabilities.test.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "4e4be99fc3572bbb54ae4e6d37d467e7"
+  },
+  "/tmp/panes/src/components/chat/engineCapabilities.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "5f227d2fd84e1c587ba1db9e1a7cdbb6"
+  },
+  "/tmp/panes/src/components/chat/messageBlockKeys.test.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "855cb870a7f251f510821cdd001fc5fd"
+  },
+  "/tmp/panes/src/components/chat/messageBlockKeys.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "69d20d467d1b6f6deb11c6eb22884a39"
+  },
+  "/tmp/panes/src/components/chat/reasoningEffort.test.ts": {
+    "mtime": 1777842102.9689806,
+    "hash": "85871e92ee9808d901bb106c336e86f7"
+  },
+  "/tmp/panes/src/components/chat/reasoningEffort.ts": {
+    "mtime": 1777842102.9729805,
+    "hash": "dd8aabcc1adab81f5af763863dacd262"
+  },
+  "/tmp/panes/src/components/chat/planModePrompt.test.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "97e18da72e72b7f97a438068408e7d57"
+  },
+  "/tmp/panes/src/components/chat/planModePrompt.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "d9fd253f8e0c9648b3d278d216b857cd"
+  },
+  "/tmp/panes/src/components/chat/OpenCodeProviderConnectModal.tsx": {
+    "mtime": 1777842102.9689806,
+    "hash": "dbac020e4f2e56c86b4b17faf3a7cdf6"
+  },
+  "/tmp/panes/src/components/chat/openCodeProviderConnectUtils.ts": {
+    "mtime": 1777842102.9689806,
+    "hash": "326c8200a43424a49391191c2941f42c"
+  },
+  "/tmp/panes/src/components/chat/toolInputApproval.ts": {
+    "mtime": 1777842052.4529805,
+    "hash": "deeeeb42f65a8b2afb2601c351a0d8d3"
+  },
+  "/tmp/panes/src/components/chat/openCodeProviderConnectUtils.test.ts": {
+    "mtime": 1777842102.9689806,
+    "hash": "9d864350b17a85bcdb3fdee65c2fc9ce"
+  },
+  "/tmp/panes/src/components/editor/CodeMirrorEditor.tsx": {
+    "mtime": 1777842052.4569805,
+    "hash": "8528061d372b6b32ec2125e75f0b2d25"
+  },
+  "/tmp/panes/src/components/editor/EditorWithExplorer.tsx": {
+    "mtime": 1777842052.4569805,
+    "hash": "fc8cdbe14e03a8b8a4f009980f804eb5"
+  },
+  "/tmp/panes/src/components/editor/FileEditorPanel.tsx": {
+    "mtime": 1777842052.4569805,
+    "hash": "924bebd00434d636e077a0ea8003bce5"
+  },
+  "/tmp/panes/src/components/editor/FileExplorer.tsx": {
+    "mtime": 1777842052.4569805,
+    "hash": "e4b4993272b792cc6c58e3e9fa088d1e"
+  },
+  "/tmp/panes/src/components/editor/GitDiffEditorPanel.test.ts": {
+    "mtime": 1777842052.4569805,
+    "hash": "b5dc4718567f51cdcd0e3c14e26ed7e9"
+  },
+  "/tmp/panes/src/components/editor/GitDiffEditorPanel.tsx": {
+    "mtime": 1777842052.4569805,
+    "hash": "1e0c4b88143ca3eaf7704ca8256329aa"
+  },
+  "/tmp/panes/src/components/editor/MarkdownPreviewPanel.tsx": {
+    "mtime": 1777842052.4569805,
+    "hash": "635d062d24fd8b15bd835ee9d4f83242"
+  },
+  "/tmp/panes/src/components/editor/fileExplorerState.test.ts": {
+    "mtime": 1777842052.4569805,
+    "hash": "b21ce86effe55b4f15811c0fdba492d7"
+  },
+  "/tmp/panes/src/components/editor/fileExplorerState.ts": {
+    "mtime": 1777842052.4569805,
+    "hash": "935475603425ad472b6cf92b9d2ed675"
+  },
+  "/tmp/panes/src/components/editor/gitDiffModel.ts": {
+    "mtime": 1777842052.4569805,
+    "hash": "e9faf97746f9c2bbacd9ece14e505f16"
+  },
+  "/tmp/panes/src/components/git/GitBranchesView.tsx": {
+    "mtime": 1777842052.4569805,
+    "hash": "2c0712cb46137ce321ff55af79a2910a"
+  },
+  "/tmp/panes/src/components/git/GitChangesView.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "79f5188f1a8b83e277f56507165a5f23"
+  },
+  "/tmp/panes/src/components/git/GitCommitsView.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "af1ff86c44e44cc6c252c56423b58da7"
+  },
+  "/tmp/panes/src/components/git/GitFilesView.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "7ea882359f8b9f0294ebc262c3b06825"
+  },
+  "/tmp/panes/src/components/git/GitPanel.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "41d559cd952306f7266c449e347ba3b0"
+  },
+  "/tmp/panes/src/components/git/GitRemotesView.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "20dd1b5408bc0db65955e0b732f5b36e"
+  },
+  "/tmp/panes/src/components/git/GitStashView.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "b8d941b2b4684df2020ad0ea1e73b6dd"
+  },
+  "/tmp/panes/src/components/git/GitWorktreesView.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "ddf8f35d6de5406748ecd2d138b4d3d9"
+  },
+  "/tmp/panes/src/components/git/MultiRepoChangesView.tsx": {
+    "mtime": 1777842052.4609807,
+    "hash": "1d570369c13e94dcb7a928d1a8105877"
+  },
+  "/tmp/panes/src/components/git/actionMenuPosition.test.ts": {
+    "mtime": 1777842052.4649806,
+    "hash": "678fa8358337beede4a660934a6c2b9d"
+  },
+  "/tmp/panes/src/components/git/actionMenuPosition.ts": {
+    "mtime": 1777842052.4649806,
+    "hash": "8c02a63daaa551d7d87ab2ae64aac939"
+  },
+  "/tmp/panes/src/components/git/gitChangesUtils.ts": {
+    "mtime": 1777842052.4649806,
+    "hash": "8ba24cb58a8bdbc6c3be8e7ef8f641eb"
+  },
+  "/tmp/panes/src/components/layout/ThreeColumnLayout.tsx": {
+    "mtime": 1777842052.4649806,
+    "hash": "893f3ae78f9b7178eb100fe182c30302"
+  },
+  "/tmp/panes/src/components/onboarding/HarnessPanel.tsx": {
+    "mtime": 1777842052.4649806,
+    "hash": "5751ee5409e9b6272d4e886205afa9ef"
+  },
+  "/tmp/panes/src/components/onboarding/OnboardingWizard.tsx": {
+    "mtime": 1777842052.4649806,
+    "hash": "1c7d7acc3b5482497d75289b0aed7b2c"
+  },
+  "/tmp/panes/src/components/onboarding/UpdateDialog.tsx": {
+    "mtime": 1777842052.4649806,
+    "hash": "f0b97e9b0f48f0e325e5b5c6ecb93933"
+  },
+  "/tmp/panes/src/components/shared/AppErrorBoundary.tsx": {
+    "mtime": 1777842052.4689806,
+    "hash": "a1e51fa12a9c679cbdd281469807e4fb"
+  },
+  "/tmp/panes/src/components/shared/CommandPalette.test.ts": {
+    "mtime": 1777842052.4689806,
+    "hash": "2e03887642a59b5f6ef6d73328e9de50"
+  },
+  "/tmp/panes/src/components/shared/CommandPalette.tsx": {
+    "mtime": 1777842052.4689806,
+    "hash": "b75fb897971c29905528e617ed5023eb"
+  },
+  "/tmp/panes/src/components/shared/ConfirmDialog.tsx": {
+    "mtime": 1777842052.4689806,
+    "hash": "42435dfc290b4f2b08469b774df27099"
+  },
+  "/tmp/panes/src/components/shared/CustomWindowFrame.test.tsx": {
+    "mtime": 1777842052.4689806,
+    "hash": "312060591c0f650787fe0aec32014e57"
+  },
+  "/tmp/panes/src/components/shared/CustomWindowFrame.tsx": {
+    "mtime": 1777842052.4689806,
+    "hash": "0e9e9a9109f6a5c0273f6a7812cc7f7d"
+  },
+  "/tmp/panes/src/components/shared/CustomWindowResizeHandles.tsx": {
+    "mtime": 1777842052.4729805,
+    "hash": "5b7344e0024567ed750a6894853ad2a5"
+  },
+  "/tmp/panes/src/components/shared/DiffViewer.tsx": {
+    "mtime": 1777842052.4729805,
+    "hash": "32bba5edcb670c021edf8125b51d6666"
+  },
+  "/tmp/panes/src/components/shared/Dropdown.tsx": {
+    "mtime": 1777842052.4729805,
+    "hash": "ccff3c32ae33e4084c8e6927eef4466f"
+  },
+  "/tmp/panes/src/components/shared/HarnessLogos.tsx": {
+    "mtime": 1777842052.4729805,
+    "hash": "15ac20d9ddb50ef3aef57e8d8eea2578"
+  },
+  "/tmp/panes/src/components/shared/InlineFileReferenceText.tsx": {
+    "mtime": 1777842052.4729805,
+    "hash": "a7a7d1bab3109a754fa2ecf7348637f9"
+  },
+  "/tmp/panes/src/components/shared/PowerSettingsModal.test.ts": {
+    "mtime": 1777842052.4729805,
+    "hash": "e86e7b4585bf6f1549fd839ea7f09a62"
+  },
+  "/tmp/panes/src/components/shared/PowerSettingsModal.tsx": {
+    "mtime": 1777842052.4729805,
+    "hash": "fed576c1ff9a95c356fdd462c213f696"
+  },
+  "/tmp/panes/src/components/shared/TerminalNotificationSettingsModal.tsx": {
+    "mtime": 1777842052.4769807,
+    "hash": "ed7d9f05c0b9c96ef0cc24b88defb54b"
+  },
+  "/tmp/panes/src/components/shared/ToastContainer.tsx": {
+    "mtime": 1777842052.4769807,
+    "hash": "7917d5464e1d54c5248114e168c622f5"
+  },
+  "/tmp/panes/src/components/sidebar/Sidebar.tsx": {
+    "mtime": 1777842052.4769807,
+    "hash": "a37389c922a1bb793cbc8e5a2722a224"
+  },
+  "/tmp/panes/src/components/sidebar/sidebarCollapseState.test.ts": {
+    "mtime": 1777842052.4769807,
+    "hash": "90ade875c7357c8439272e2861e62190"
+  },
+  "/tmp/panes/src/components/sidebar/sidebarCollapseState.ts": {
+    "mtime": 1777842052.4769807,
+    "hash": "fd7368fe2db2264df99314a71f9a6dbd"
+  },
+  "/tmp/panes/src/components/terminal/TerminalPanel.tsx": {
+    "mtime": 1777842102.9729805,
+    "hash": "8eb3d50c8115b53aa42aa94ebaee705d"
+  },
+  "/tmp/panes/src/components/terminal/terminalCacheLifecycle.test.ts": {
+    "mtime": 1777842052.4809806,
+    "hash": "970cab8d793c30f68ef94b102fe34c43"
+  },
+  "/tmp/panes/src/components/terminal/terminalCacheLifecycle.ts": {
+    "mtime": 1777842052.4809806,
+    "hash": "4b01f6f9e4f48df6f208630a49473c07"
+  },
+  "/tmp/panes/src/components/workspace/WorkspaceMoreMenu.tsx": {
+    "mtime": 1777842052.4849806,
+    "hash": "c2534b71dee3fce6e21bbd0a2204c6e4"
+  },
+  "/tmp/panes/src/components/workspace/WorkspacePaneShell.tsx": {
+    "mtime": 1777842052.4849806,
+    "hash": "ba02ba15d1bb95501f32e8f145ebf1a9"
+  },
+  "/tmp/panes/src/components/workspace/WorkspaceSettingsModal.tsx": {
+    "mtime": 1777842052.4849806,
+    "hash": "ec98d10a40751b01a179b6e91a8d0cde"
+  },
+  "/tmp/panes/src/components/workspace/WorkspaceSettingsPage.tsx": {
+    "mtime": 1777842052.4849806,
+    "hash": "13d81b4cd630da9767eae740564ee25e"
+  },
+  "/tmp/panes/src/components/workspace/WorkspaceStartupPresetModal.test.ts": {
+    "mtime": 1777842052.4849806,
+    "hash": "5401c2ff786f72b955dd063a8d76bcbd"
+  },
+  "/tmp/panes/src/components/workspace/WorkspaceStartupPresetModal.tsx": {
+    "mtime": 1777842052.4889805,
+    "hash": "86491d6bb992bd616e1f7d39ed95bb2a"
+  },
+  "/tmp/panes/src/components/workspace/WorkspaceStartupSection.tsx": {
+    "mtime": 1777842052.4889805,
+    "hash": "7b647a84ad264df2082ae803960ddf3f"
+  },
+  "/tmp/panes/src/i18n/index.ts": {
+    "mtime": 1777842052.4929805,
+    "hash": "eaddce6f2bee88ab4b73a3ecd9149ca6"
+  },
+  "/tmp/panes/src/i18n/resources.test.ts": {
+    "mtime": 1777842052.4929805,
+    "hash": "a4e2d643a54e097668f15190a499aa43"
+  },
+  "/tmp/panes/src/lib/clipboard.ts": {
+    "mtime": 1777842052.5089805,
+    "hash": "f890fc725a7b64ca5fc86339ca0fb8bb"
+  },
+  "/tmp/panes/src/lib/commandPalette.test.ts": {
+    "mtime": 1777842052.5129805,
+    "hash": "ccc3c5d0fa6317ea62a1f97c2711983c"
+  },
+  "/tmp/panes/src/lib/commandPalette.ts": {
+    "mtime": 1777842052.5129805,
+    "hash": "c08e34e3f012611ef8a6303a11ab2f42"
+  },
+  "/tmp/panes/src/lib/commandPaletteGit.test.ts": {
+    "mtime": 1777842052.5129805,
+    "hash": "b71bd40db2c07fb03ac828fbb9221aef"
+  },
+  "/tmp/panes/src/lib/commandPaletteGit.ts": {
+    "mtime": 1777842052.5129805,
+    "hash": "b912d3a1f493d787d2fe67a2242fdf2f"
+  },
+  "/tmp/panes/src/lib/customWindowFrame.test.ts": {
+    "mtime": 1777842052.5129805,
+    "hash": "5dcb2cedea8edd2bdf87b00c5f740c16"
+  },
+  "/tmp/panes/src/lib/customWindowFrame.ts": {
+    "mtime": 1777842052.5169806,
+    "hash": "0acc3eb2f9ad56691e62d530e752a330"
+  },
+  "/tmp/panes/src/lib/dependencies.test.ts": {
+    "mtime": 1777842052.5169806,
+    "hash": "14262c5dbaf9d3f1a92b242e078e23e6"
+  },
+  "/tmp/panes/src/lib/dependencies.ts": {
+    "mtime": 1777842052.5169806,
+    "hash": "cc3ce9845963b2c57ae4f0ecc6ecbed4"
+  },
+  "/tmp/panes/src/lib/editMenu.test.ts": {
+    "mtime": 1777842052.5169806,
+    "hash": "28a094d923349d91ddc818bed18c3d70"
+  },
+  "/tmp/panes/src/lib/editMenu.ts": {
+    "mtime": 1777842052.5169806,
+    "hash": "2f392f4bc4fb286453f91833dc56262a"
+  },
+  "/tmp/panes/src/lib/editorFileTypes.ts": {
+    "mtime": 1777842052.5169806,
+    "hash": "4a67d9fa1b462bd6d39ea985e908c777"
+  },
+  "/tmp/panes/src/lib/fileLinkNavigation.test.ts": {
+    "mtime": 1777842052.5209806,
+    "hash": "3ce50f3984707cb583081045d3532910"
+  },
+  "/tmp/panes/src/lib/fileLinkNavigation.ts": {
+    "mtime": 1777842052.5209806,
+    "hash": "440d5c9882006d2c5e3667214af0af17"
+  },
+  "/tmp/panes/src/lib/fileReferences.test.ts": {
+    "mtime": 1777842052.5209806,
+    "hash": "715ca3add217708cb546f3cccde9a970"
+  },
+  "/tmp/panes/src/lib/fileReferences.ts": {
+    "mtime": 1777842052.5209806,
+    "hash": "c6585468663ca715513ee6521b8c40ea"
+  },
+  "/tmp/panes/src/lib/fileRootUtils.ts": {
+    "mtime": 1777842052.5209806,
+    "hash": "9f6adb0fcfb755f1862856d8be76f751"
+  },
+  "/tmp/panes/src/lib/formatters.ts": {
+    "mtime": 1777842052.5249805,
+    "hash": "96802b30d9c74faba4bba26acbb2e826"
+  },
+  "/tmp/panes/src/lib/gitFlyoutRegion.ts": {
+    "mtime": 1777842052.5249805,
+    "hash": "c136b7961160ffc8b9fb577bd820bbe2"
+  },
+  "/tmp/panes/src/lib/harnessInstallActions.test.ts": {
+    "mtime": 1777842052.5249805,
+    "hash": "6d9da78a7dcbe2ca74cb079161d5503b"
+  },
+  "/tmp/panes/src/lib/harnessInstallActions.ts": {
+    "mtime": 1777842052.5249805,
+    "hash": "9887f12aa57f2dac89e7d66dddc9f758"
+  },
+  "/tmp/panes/src/lib/ipc.ts": {
+    "mtime": 1777842102.9849806,
+    "hash": "cddc7fc08b8398b9ad3bee8ab21624b7"
+  },
+  "/tmp/panes/src/lib/localFileLinkPatterns.ts": {
+    "mtime": 1777842052.5289805,
+    "hash": "5e326e0f1ba452a912badfcd8f4d3771"
+  },
+  "/tmp/panes/src/lib/locale.ts": {
+    "mtime": 1777842052.5289805,
+    "hash": "3e0ceff66acaad64ef35b8ba27d31ffe"
+  },
+  "/tmp/panes/src/lib/nativeEditActions.ts": {
+    "mtime": 1777842052.5289805,
+    "hash": "758f5bb44a20f63086f6f26c7f26aee0"
+  },
+  "/tmp/panes/src/lib/newThreadActions.ts": {
+    "mtime": 1777842052.5289805,
+    "hash": "9ebecbfa685645103d152f52a96a53da"
+  },
+  "/tmp/panes/src/lib/newThreadLayout.test.ts": {
+    "mtime": 1777842052.5289805,
+    "hash": "67275aaebad813273ed4612f46ab6f3b"
+  },
+  "/tmp/panes/src/lib/newThreadLayout.ts": {
+    "mtime": 1777842052.5329807,
+    "hash": "be5782324389b2e2f12da177955a98fe"
+  },
+  "/tmp/panes/src/lib/newThreadRuntime.test.ts": {
+    "mtime": 1777842052.5329807,
+    "hash": "0aa9dc0ce5249f3dde7e79b7febca9f0"
+  },
+  "/tmp/panes/src/lib/newThreadRuntime.ts": {
+    "mtime": 1777842052.5329807,
+    "hash": "2c0f04aedf0a86b85797f63b18b339b2"
+  },
+  "/tmp/panes/src/lib/onboarding.test.ts": {
+    "mtime": 1777842052.5329807,
+    "hash": "30ce7f92dcd014ece727a87d170c32bb"
+  },
+  "/tmp/panes/src/lib/onboarding.ts": {
+    "mtime": 1777842052.5329807,
+    "hash": "bc2a47841a92f9d9a986e07f2cd28318"
+  },
+  "/tmp/panes/src/lib/openEditorFileReference.ts": {
+    "mtime": 1777842052.5369806,
+    "hash": "d759758eb2814e497019fee98377c13e"
+  },
+  "/tmp/panes/src/lib/parseDiff.test.ts": {
+    "mtime": 1777842052.5369806,
+    "hash": "3b4b51b54d5220ecc15b9f39c7d62a79"
+  },
+  "/tmp/panes/src/lib/parseDiff.ts": {
+    "mtime": 1777842052.5369806,
+    "hash": "f189439f18c6fba06da8233c762d74a3"
+  },
+  "/tmp/panes/src/lib/perfTelemetry.ts": {
+    "mtime": 1777842052.5369806,
+    "hash": "4891e14d0fdef7e1a9249fd3c9cdb3ed"
+  },
+  "/tmp/panes/src/lib/setupGuidance.test.ts": {
+    "mtime": 1777842052.5369806,
+    "hash": "e429133f56a74f14c169cb43743421d5"
+  },
+  "/tmp/panes/src/lib/setupGuidance.ts": {
+    "mtime": 1777842052.5409806,
+    "hash": "a7d5b0e87f38ad3517852bdf18dc6847"
+  },
+  "/tmp/panes/src/lib/terminalBootstrap.test.ts": {
+    "mtime": 1777842052.5409806,
+    "hash": "8b7da9b0e0fdb515adf3c5b16c336a6c"
+  },
+  "/tmp/panes/src/lib/terminalBootstrap.ts": {
+    "mtime": 1777842052.5409806,
+    "hash": "1212c6ff95d794d385860025f244e954"
+  },
+  "/tmp/panes/src/lib/terminalClipboard.test.ts": {
+    "mtime": 1777842052.5409806,
+    "hash": "8415818ea7a3a18096d84221cc8705d1"
+  },
+  "/tmp/panes/src/lib/terminalClipboard.ts": {
+    "mtime": 1777842052.5409806,
+    "hash": "d07755298fc0315036d0dedd61565e28"
+  },
+  "/tmp/panes/src/lib/terminalFileReferences.test.ts": {
+    "mtime": 1777842052.5449805,
+    "hash": "d31875ca68449979a0a7b565f3260376"
+  },
+  "/tmp/panes/src/lib/terminalFileReferences.ts": {
+    "mtime": 1777842052.5449805,
+    "hash": "717b8bc71350e0c166a059ce61bfcf19"
+  },
+  "/tmp/panes/src/lib/terminalRenderingSettings.ts": {
+    "mtime": 1777842052.5449805,
+    "hash": "6aeee0dc23444aae3cf5234a69f68504"
+  },
+  "/tmp/panes/src/lib/windowActions.test.ts": {
+    "mtime": 1777842052.5449805,
+    "hash": "ec245de255a17422abcb401c1befa62c"
+  },
+  "/tmp/panes/src/lib/windowActions.ts": {
+    "mtime": 1777842052.5489805,
+    "hash": "157e2d09378efee1066c83bb92cd1984"
+  },
+  "/tmp/panes/src/lib/windowDrag.ts": {
+    "mtime": 1777842052.5489805,
+    "hash": "c32f107a0f122c0ac1e5cec0b45659e4"
+  },
+  "/tmp/panes/src/lib/workspacePaneNavigation.test.ts": {
+    "mtime": 1777842052.5489805,
+    "hash": "c5f84c20a635f5eaa11ce551474174db"
+  },
+  "/tmp/panes/src/lib/workspacePaneNavigation.ts": {
+    "mtime": 1777842052.5489805,
+    "hash": "a93358b0df25cc8092f89ba2eb9e765f"
+  },
+  "/tmp/panes/src/lib/workspaceStartupUi.test.ts": {
+    "mtime": 1777842052.5489805,
+    "hash": "ad3aaac90f0278990ca02dbfab5e720e"
+  },
+  "/tmp/panes/src/lib/workspaceStartupUi.ts": {
+    "mtime": 1777842052.5529807,
+    "hash": "7056bc810ad90b3248a1c807dbbc830e"
+  },
+  "/tmp/panes/src/stores/chatComposerStore.ts": {
+    "mtime": 1777842052.5529807,
+    "hash": "a0666bab18278a1ffe8b103fb7b4f957"
+  },
+  "/tmp/panes/src/stores/chatStore.test.ts": {
+    "mtime": 1777842067.0489805,
+    "hash": "e1c983decc01db30b475246ee9ea6413"
+  },
+  "/tmp/panes/src/stores/chatStore.ts": {
+    "mtime": 1777842067.0489805,
+    "hash": "421f34852b035c493f2407799050bad0"
+  },
+  "/tmp/panes/src/stores/engineStore.test.ts": {
+    "mtime": 1777842052.5569806,
+    "hash": "07cab69b13536d67bdb092a614077d43"
+  },
+  "/tmp/panes/src/stores/engineStore.ts": {
+    "mtime": 1777842052.5569806,
+    "hash": "d788f9460ba2f405f05bb055933499af"
+  },
+  "/tmp/panes/src/stores/fileStore.test.ts": {
+    "mtime": 1777842052.5609806,
+    "hash": "5d9d23cbf77b1358fc010139b92f4037"
+  },
+  "/tmp/panes/src/stores/fileStore.ts": {
+    "mtime": 1777842052.5609806,
+    "hash": "8fce7283018a2c4820c035a768496a18"
+  },
+  "/tmp/panes/src/stores/gitStore.test.ts": {
+    "mtime": 1777842052.5609806,
+    "hash": "120d7e0425c07fdb6542c84ec1d4aed8"
+  },
+  "/tmp/panes/src/stores/gitStore.ts": {
+    "mtime": 1777842052.5609806,
+    "hash": "c1a00003021a86db10061927a36d8810"
+  },
+  "/tmp/panes/src/stores/harnessStore.ts": {
+    "mtime": 1777842052.5649805,
+    "hash": "af2371f084959cd11392eee0ca164af4"
+  },
+  "/tmp/panes/src/stores/keepAwakeStore.test.ts": {
+    "mtime": 1777842052.5649805,
+    "hash": "4ef4b4744285235f46d8e55a330aceae"
+  },
+  "/tmp/panes/src/stores/keepAwakeStore.ts": {
+    "mtime": 1777842052.5649805,
+    "hash": "da48539c2d1d6ef1e8a8c0067c8758fa"
+  },
+  "/tmp/panes/src/stores/onboardingStore.test.ts": {
+    "mtime": 1777842052.5649805,
+    "hash": "c080c0ea6fea34190789239a89e7a4e7"
+  },
+  "/tmp/panes/src/stores/onboardingStore.ts": {
+    "mtime": 1777842052.5649805,
+    "hash": "3515be0b60edb13de9be308f8b03c1d4"
+  },
+  "/tmp/panes/src/stores/terminalNotificationSettingsStore.ts": {
+    "mtime": 1777842052.5689805,
+    "hash": "df582716256d23cc94798332d086d893"
+  },
+  "/tmp/panes/src/stores/terminalStore.multiSession.test.ts": {
+    "mtime": 1777842052.5689805,
+    "hash": "2e41ecc5a835dddb099799f4a9a4ff86"
+  },
+  "/tmp/panes/src/stores/terminalStore.test.ts": {
+    "mtime": 1777842052.5689805,
+    "hash": "1c37a405a73d9b565eede408b47e6672"
+  },
+  "/tmp/panes/src/stores/terminalStore.ts": {
+    "mtime": 1777842052.5729806,
+    "hash": "34cce838c3dcf51a589e3eadbe0560d4"
+  },
+  "/tmp/panes/src/stores/threadStore.ts": {
+    "mtime": 1777842052.5729806,
+    "hash": "c5a196793fd407d62cd4c19fd50877df"
+  },
+  "/tmp/panes/src/stores/toastStore.ts": {
+    "mtime": 1777842052.5729806,
+    "hash": "ed0ce0ec63c0969432908530c2104349"
+  },
+  "/tmp/panes/src/stores/uiStore.test.ts": {
+    "mtime": 1777842052.5729806,
+    "hash": "342030d69bbfde75d1a4d832840c488a"
+  },
+  "/tmp/panes/src/stores/uiStore.ts": {
+    "mtime": 1777842052.5729806,
+    "hash": "cf78bc2eadc63a27108b16af797df1a3"
+  },
+  "/tmp/panes/src/stores/updateStore.ts": {
+    "mtime": 1777842052.5769806,
+    "hash": "287bf07fd5831ed0f7705e20d4ccc433"
+  },
+  "/tmp/panes/src/stores/workspacePaneStore.test.ts": {
+    "mtime": 1777842052.5769806,
+    "hash": "462b2e03c9b39c4c661415249a186a93"
+  },
+  "/tmp/panes/src/stores/workspacePaneStore.ts": {
+    "mtime": 1777842052.5769806,
+    "hash": "1ba71e4db2b98a9f3efa07db95d17397"
+  },
+  "/tmp/panes/src/stores/workspaceStore.test.ts": {
+    "mtime": 1777842052.5769806,
+    "hash": "499634a79c3a14902a8271037b9e2745"
+  },
+  "/tmp/panes/src/stores/workspaceStore.ts": {
+    "mtime": 1777842052.5769806,
+    "hash": "610af354bec80842492b48f8c318bd07"
+  },
+  "/tmp/panes/src/workers/diffParser.types.ts": {
+    "mtime": 1777842052.5809805,
+    "hash": "30507345aae2cf1ecbf4d3848a0a4b2b"
+  },
+  "/tmp/panes/src/workers/diffParser.worker.ts": {
+    "mtime": 1777842052.5809805,
+    "hash": "92ea85a6a566670b2bf5a6b0f86fbae0"
+  },
+  "/tmp/panes/src/workers/markdownParser.types.ts": {
+    "mtime": 1777842052.5809805,
+    "hash": "ad258e45682482c3c8bd010ebfb6689e"
+  },
+  "/tmp/panes/src/workers/markdownParser.worker.ts": {
+    "mtime": 1777842052.5849805,
+    "hash": "32b080a0b70cdafcc429b8f4a5b78129"
+  },
+  "/tmp/panes/src/workers/markdownParserCore.ts": {
+    "mtime": 1777842052.5849805,
+    "hash": "f3fdfaae6195d120f040e1754582e2b9"
+  },
+  "/tmp/panes/tests/MarkdownContent.test.tsx": {
+    "mtime": 1777842052.5849805,
+    "hash": "cd4d64e67498d51fc5241144a9f50794"
+  },
+  "/tmp/panes/tests/claudeAgentSidecar.test.ts": {
+    "mtime": 1777842052.5849805,
+    "hash": "37d0ee9dbde998ce701dd25e55231160"
+  },
+  "/tmp/panes/tests/homebrewCask.test.ts": {
+    "mtime": 1777842052.5889807,
+    "hash": "37aa2de422c2d3a625fd7a4b97d4aeff"
+  },
+  "/tmp/panes/tests/markdownParserCore.test.ts": {
+    "mtime": 1777842052.5889807,
+    "hash": "6ecc0af22597621fb6c92c82c1b0d877"
+  },
+  "/tmp/panes/tests/updateManifest.test.ts": {
+    "mtime": 1777842052.5889807,
+    "hash": "26d5f02ad8a5e86f02c6929f17bd30db"
+  },
+  "/tmp/panes/tests/fixtures/claude-agent-sdk-mock.mjs": {
+    "mtime": 1777842052.5889807,
+    "hash": "8242c2911ace6be4631ce1a1da2fd091"
+  },
+  "/tmp/panes/CHANGELOG.md": {
+    "mtime": 1777842066.9889805,
+    "hash": "38a96c789b36bf7f95bdcd26635c0d9f"
+  },
+  "/tmp/panes/CONTRIBUTING.md": {
+    "mtime": 1777842052.3129807,
+    "hash": "72e155e89c42a3a74e0a6457c8b159c7"
+  },
+  "/tmp/panes/README.md": {
+    "mtime": 1777842052.3129807,
+    "hash": "80a98339624e994d491565d96d045013"
+  },
+  "/tmp/panes/README.pt-BR.md": {
+    "mtime": 1777842052.3129807,
+    "hash": "8331e144b432784162755efc90656c8b"
+  },
+  "/tmp/panes/index.html": {
+    "mtime": 1777842102.9489806,
+    "hash": "5949d4c7c201ab12bf3add68f3576bd3"
+  },
+  "/tmp/panes/pnpm-workspace.yaml": {
+    "mtime": 1777842052.3289807,
+    "hash": "424296f7f2c58bfae6076a5594e7b621"
+  },
+  "/tmp/panes/agents_docs/dev notes/file-link-pane-split-and-tab-polish-notes.txt": {
+    "mtime": 1777842052.3129807,
+    "hash": "b0c398827b2decf54593c879bd09e5b9"
+  },
+  "/tmp/panes/agents_docs/dev notes/opencode-chat-engine-notes.txt": {
+    "mtime": 1777842052.3169806,
+    "hash": "c2f8afd2697c69210f21560739db1678"
+  },
+  "/tmp/panes/docs/github-repo-settings.md": {
+    "mtime": 1777842052.3169806,
+    "hash": "2cccad3a7d4c00b004a1826834afe7b6"
+  },
+  "/tmp/panes/docs/homebrew-distribution.md": {
+    "mtime": 1777842052.3169806,
+    "hash": "e7728cd8ab8a1f473f16946c5bcb69da"
+  },
+  "/tmp/panes/landing-page/index.html": {
+    "mtime": 1777842052.3209805,
+    "hash": "520d18f5fb85b5c311138241c84aa780"
+  },
+  "/tmp/panes/app-icon.png": {
+    "mtime": 1777842052.3169806,
+    "hash": "b1f68bf7fec43971dfc08555bd29b69e"
+  },
+  "/tmp/panes/app-icon.svg": {
+    "mtime": 1777842052.3169806,
+    "hash": "8cdec3222c771dd6270d43670783d0ee"
+  },
+  "/tmp/panes/landing-page/icon.svg": {
+    "mtime": 1777842052.3209805,
+    "hash": "8cdec3222c771dd6270d43670783d0ee"
+  },
+  "/tmp/panes/landing-page/logo.svg": {
+    "mtime": 1777842052.3209805,
+    "hash": "5caf6bd96686c3463806a3e6312fe26e"
+  },
+  "/tmp/panes/src-tauri/icons/128x128.png": {
+    "mtime": 1777842052.3369806,
+    "hash": "4814ab02ba86aa9bd80f838ac49d0f43"
+  },
+  "/tmp/panes/src-tauri/icons/128x128@2x.png": {
+    "mtime": 1777842052.3369806,
+    "hash": "a8495c62c99d121de942ad2da854c0aa"
+  },
+  "/tmp/panes/src-tauri/icons/32x32.png": {
+    "mtime": 1777842052.3369806,
+    "hash": "1e8705bb8f6e92f4b7fcb4b31c0870a3"
+  },
+  "/tmp/panes/src-tauri/icons/64x64.png": {
+    "mtime": 1777842052.3369806,
+    "hash": "38388329061370c8428598f31c264bb0"
+  },
+  "/tmp/panes/src-tauri/icons/Square107x107Logo.png": {
+    "mtime": 1777842052.3369806,
+    "hash": "ed7bc7d516a969685447946f754940a5"
+  },
+  "/tmp/panes/src-tauri/icons/Square142x142Logo.png": {
+    "mtime": 1777842052.3369806,
+    "hash": "c042cc18dc5fd6fa0f14cf2dbaf17773"
+  },
+  "/tmp/panes/src-tauri/icons/Square150x150Logo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "b488e795f3fba52092508b13b04dbe07"
+  },
+  "/tmp/panes/src-tauri/icons/Square284x284Logo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "9113fe1466de9cbfac8eebf70db7f64c"
+  },
+  "/tmp/panes/src-tauri/icons/Square30x30Logo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "342e5ad562c6a5fb40b5e00bb75e3960"
+  },
+  "/tmp/panes/src-tauri/icons/Square310x310Logo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "5b8a862a166c775fe8c71733db339c7d"
+  },
+  "/tmp/panes/src-tauri/icons/Square44x44Logo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "7e49d3b3a3b86f01de044fbb5f32a379"
+  },
+  "/tmp/panes/src-tauri/icons/Square71x71Logo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "77c257ad96e70a431b574161a07be534"
+  },
+  "/tmp/panes/src-tauri/icons/Square89x89Logo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "145b4dbbd678921ea9daa402347f6788"
+  },
+  "/tmp/panes/src-tauri/icons/StoreLogo.png": {
+    "mtime": 1777842052.3409805,
+    "hash": "df318bd7623fb2e2cea0eac6b5b27f4c"
+  },
+  "/tmp/panes/src-tauri/icons/icon.png": {
+    "mtime": 1777842052.3609805,
+    "hash": "7af9c70d9bf574da0593b90e2d8b3b6c"
+  },
+  "/tmp/panes/src-tauri/icons/icon.svg": {
+    "mtime": 1777842052.3609805,
+    "hash": "8cdec3222c771dd6270d43670783d0ee"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-hdpi/ic_launcher.png": {
+    "mtime": 1777842052.3449805,
+    "hash": "5e1c4275233c908dd4c82cd609a02db8"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png": {
+    "mtime": 1777842052.3449805,
+    "hash": "c15d8a3910f4f984e9874f3f0c236c43"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png": {
+    "mtime": 1777842052.3449805,
+    "hash": "29df1ab977d7118c56cee93f59eb0aa8"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-mdpi/ic_launcher.png": {
+    "mtime": 1777842052.3449805,
+    "hash": "6d37ce4bb367505f18412fe438ae48ea"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png": {
+    "mtime": 1777842052.3449805,
+    "hash": "b5e74cebc896c249d47774cc77ae6181"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png": {
+    "mtime": 1777842052.3449805,
+    "hash": "d06352a1127a82f29231cb0696215503"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png": {
+    "mtime": 1777842052.3489807,
+    "hash": "965aa4419bfeedc1570a8c64b64d29e1"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png": {
+    "mtime": 1777842052.3489807,
+    "hash": "f1e2a9e5ef1f27d313295339e08c8759"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png": {
+    "mtime": 1777842052.3489807,
+    "hash": "0adec5cf3e5ea076d1a902efa9f5cf3c"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png": {
+    "mtime": 1777842052.3489807,
+    "hash": "ca8efd910e49098fe1fcb9b25bdbb9e9"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1777842052.3489807,
+    "hash": "5f17cd43b592ab87a5ab4f00d18bc681"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png": {
+    "mtime": 1777842052.3489807,
+    "hash": "ca084ed5a7ffa1f0b0c8563ed79e1ab7"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png": {
+    "mtime": 1777842052.3529806,
+    "hash": "9e5bcd775fc85a3b301a646bb73a7324"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png": {
+    "mtime": 1777842052.3529806,
+    "hash": "a891ac75ff6d64b02a62eb9d71f8babc"
+  },
+  "/tmp/panes/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png": {
+    "mtime": 1777842052.3529806,
+    "hash": "ff913d4c0723814571d5798edbc98884"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-20x20@1x.png": {
+    "mtime": 1777842052.3609805,
+    "hash": "3ff026cfb515924f5da0ef7099f1c07a"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-20x20@2x-1.png": {
+    "mtime": 1777842052.3609805,
+    "hash": "e642cd46fe00f1c14bd33ebc7dd340e8"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-20x20@2x.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "e642cd46fe00f1c14bd33ebc7dd340e8"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-20x20@3x.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "db67f1ea6dc7a6a63e9caa43a5321eac"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-29x29@1x.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "cf7ee61f73da6c9021ad65a4992c902c"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-29x29@2x-1.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "495270e8943b3f50485679508cd8fa04"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-29x29@2x.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "495270e8943b3f50485679508cd8fa04"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-29x29@3x.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "0c0259c893634fa80e0b181b635ca0c3"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-40x40@1x.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "e642cd46fe00f1c14bd33ebc7dd340e8"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-40x40@2x-1.png": {
+    "mtime": 1777842052.3649805,
+    "hash": "81d18405e345256b1d91e45d99df615f"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-40x40@2x.png": {
+    "mtime": 1777842052.3689806,
+    "hash": "81d18405e345256b1d91e45d99df615f"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-40x40@3x.png": {
+    "mtime": 1777842052.3689806,
+    "hash": "0dbaa4de22bf93b260bec9dfa6568f41"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-512@2x.png": {
+    "mtime": 1777842052.3729806,
+    "hash": "5927aa213024c53d52ea89aede671a58"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-60x60@2x.png": {
+    "mtime": 1777842052.3729806,
+    "hash": "0dbaa4de22bf93b260bec9dfa6568f41"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-60x60@3x.png": {
+    "mtime": 1777842052.3729806,
+    "hash": "a4f92d83b8af9399cb425957b2f50dc4"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-76x76@1x.png": {
+    "mtime": 1777842052.3729806,
+    "hash": "441770a3063ebc3b329d075f1bc10d5a"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-76x76@2x.png": {
+    "mtime": 1777842052.3729806,
+    "hash": "bfa8816090d4b271d983fad9690f4717"
+  },
+  "/tmp/panes/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png": {
+    "mtime": 1777842052.3729806,
+    "hash": "a38a7d9902bc9db2c4fc65abf3cf27c3"
+  }
+}

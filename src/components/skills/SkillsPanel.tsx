@@ -1,276 +1,221 @@
-/**
- * SkillsPanel - Unified Skills UI Component
- * 
- * This component provides a unified interface for managing skills
- * across all engines (Codex, OpenCode, Claude).
- */
+// ============================================================
+// SkillsPanel - Componente React para exibir e gerenciar skills
+// ============================================================
 
-import { useState, useMemo } from "react";
-import { X, Search, ChevronRight, Check } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { useSkills } from "./useSkills";
-import type { UnifiedSkill, SkillCategory } from "./types";
+import React, { useState } from 'react';
+import { useSkills } from '../../lib/skills/useSkills';
+import { Skill, SkillCategory, PROVIDER_LABELS, PROVIDER_ICONS } from '../../lib/skills/types';
+import './SkillsPanel.css';
 
-/**
- * Props for SkillsPanel
- */
-export interface SkillsPanelProps {
-  engineId: string;
+interface SkillsPanelProps {
+  isOpen: boolean;
   onClose: () => void;
-  onSkillSelect?: (skill: UnifiedSkill) => void;
+  currentProvider?: 'opencode' | 'codex' | 'claude';
 }
 
-/**
- * Category icons and labels
- */
-const CATEGORY_INFO: Record<
-  SkillCategory,
-  { icon: string; label: string; color: string }
-> = {
-  frontend: { icon: "🎨", label: "Frontend", color: "#06b6d4" },
-  backend: { icon: "⚙️", label: "Backend", color: "#8b5cf6" },
-  data: { icon: "📊", label: "Data", color: "#f59e0b" },
-  devops: { icon: "🚀", label: "DevOps", color: "#10b981" },
-  security: { icon: "🔒", label: "Security", color: "#ef4444" },
-  testing: { icon: "🧪", label: "Testing", color: "#ec4899" },
-  custom: { icon: "✨", label: "Custom", color: "#6366f1" },
-};
+const TABS: { category: SkillCategory; label: string; icon: string }[] = [
+  { category: 'opencode', label: 'OpenCode', icon: '🔧' },
+  { category: 'codex', label: 'Codex', icon: '⚡' },
+  { category: 'claude', label: 'Claude', icon: '🧠' },
+  { category: 'custom', label: 'Custom', icon: '✨' },
+];
 
-/**
- * SkillsPanel Component
- */
-export function SkillsPanel({
-  engineId,
-  onClose,
-  onSkillSelect,
-}: SkillsPanelProps) {
-  const { t } = useTranslation("chat");
-  const { skills, isEnabled, toggleSkill, byCategory } = useSkills(engineId);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(Object.keys(byCategory)),
-  );
-  const [activeTab, setActiveTab] = useState<"all" | "enabled">("all");
+export function SkillsPanel({ isOpen, onClose, currentProvider }: SkillsPanelProps) {
+  const {
+    skillsByCategory,
+    filteredSkillsByCategory,
+    selectedTab,
+    setSelectedTab,
+    toggleSkill,
+    isSkillEnabled,
+    searchQuery,
+    setSearchQuery,
+    getCountByCategory,
+    isLoading,
+    error,
+  } = useSkills(selectedTab);
 
-  // Filter skills by search query
-  const filteredByCategory = useMemo(() => {
-    if (!searchQuery.trim()) return byCategory;
+  if (!isOpen) return null;
 
-    const query = searchQuery.toLowerCase();
-    const result: Record<string, UnifiedSkill[]> = {};
-
-    for (const [category, categorySkills] of Object.entries(byCategory)) {
-      const filtered = categorySkills.filter(
-        (skill) =>
-          skill.name.toLowerCase().includes(query) ||
-          skill.description.toLowerCase().includes(query),
-      );
-      if (filtered.length > 0) {
-        result[category] = filtered;
-      }
-    }
-
-    return result;
-  }, [byCategory, searchQuery]);
-
-  // Get skills for active tab
-  const displayedSkills = useMemo(() => {
-    if (activeTab === "enabled") {
-      return Object.entries(filteredByCategory).reduce(
-        (acc, [category, categorySkills]) => {
-          const enabled = categorySkills.filter((s) => isEnabled(s.id));
-          if (enabled.length > 0) {
-            acc[category] = enabled;
-          }
-          return acc;
-        },
-        {} as Record<string, UnifiedSkill[]>,
-      );
-    }
-    return filteredByCategory;
-  }, [filteredByCategory, activeTab, isEnabled]);
-
-  // Toggle category expansion
-  const toggleCategory = (category: string) => {
-    setExpandedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
-      return next;
-    });
-  };
-
-  // Handle skill click
-  const handleSkillClick = (skill: UnifiedSkill) => {
-    if (onSkillSelect) {
-      onSkillSelect(skill);
-    } else {
-      toggleSkill(skill.id);
-    }
-  };
-
-  const categories = Object.keys(displayedSkills).sort();
+  const skills = filteredSkillsByCategory[selectedTab] || [];
 
   return (
-    <div className="skills-panel">
-      {/* Header */}
-      <div className="skills-panel-header">
-        <div className="skills-panel-title">
-          <span className="skills-panel-icon">🧩</span>
-          <span>{t("skills.title", "Skills")}</span>
-        </div>
-        <button
-          type="button"
-          className="skills-panel-close"
-          onClick={onClose}
-          title={t("skills.close", "Close")}
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="skills-panel-search">
-        <Search size={14} />
-        <input
-          type="text"
-          placeholder={t("skills.search", "Search skills...")}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="skills-panel-search-input"
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="skills-panel-tabs">
-        <button
-          type="button"
-          className={`skills-tab ${activeTab === "all" ? "active" : ""}`}
-          onClick={() => setActiveTab("all")}
-        >
-          {t("skills.all", "All")}
-          <span className="skills-tab-count">{skills.length}</span>
-        </button>
-        <button
-          type="button"
-          className={`skills-tab ${activeTab === "enabled" ? "active" : ""}`}
-          onClick={() => setActiveTab("enabled")}
-        >
-          {t("skills.enabled", "Enabled")}
-          <span className="skills-tab-count">
-            {skills.filter((s) => isEnabled(s.id)).length}
-          </span>
-        </button>
-      </div>
-
-      {/* Skills List */}
-      <div className="skills-panel-content">
-        {categories.length === 0 ? (
-          <div className="skills-panel-empty">
-            {searchQuery
-              ? t("skills.noResults", "No skills match your search")
-              : t("skills.noSkills", "No skills available for this engine")}
+    <div className="skills-panel-overlay" onClick={onClose}>
+      <div className="skills-panel" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="skills-panel-header">
+          <div className="skills-panel-title">
+            <span className="skills-panel-icon">🎯</span>
+            <h2>Skills</h2>
           </div>
-        ) : (
-          categories.map((category) => (
-            <div key={category} className="skills-category">
-              {/* Category Header */}
+          <button className="skills-panel-close" onClick={onClose} aria-label="Fechar">
+            ✕
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="skills-search">
+          <input
+            type="text"
+            placeholder="Buscar skills..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="skills-search-input"
+          />
+          {searchQuery && (
+            <button 
+              className="skills-search-clear"
+              onClick={() => setSearchQuery('')}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="skills-tabs">
+          {TABS.map(tab => {
+            const counts = getCountByCategory(tab.category);
+            const isActive = selectedTab === tab.category;
+            
+            return (
               <button
-                type="button"
-                className="skills-category-header"
-                onClick={() => toggleCategory(category)}
+                key={tab.category}
+                className={`skills-tab ${isActive ? 'active' : ''}`}
+                onClick={() => setSelectedTab(tab.category)}
               >
-                <ChevronRight
-                  size={14}
-                  className={`skills-category-chevron ${
-                    expandedCategories.has(category) ? "expanded" : ""
-                  }`}
-                />
-                <span className="skills-category-icon">
-                  {CATEGORY_INFO[category as SkillCategory]?.icon || "📦"}
-                </span>
-                <span className="skills-category-label">
-                  {CATEGORY_INFO[category as SkillCategory]?.label || category}
-                </span>
-                <span className="skills-category-count">
-                  {displayedSkills[category].length}
+                <span className="tab-icon">{tab.icon}</span>
+                <span className="tab-label">{tab.label}</span>
+                <span className="tab-count">
+                  {counts.enabled}/{counts.total}
                 </span>
               </button>
+            );
+          })}
+        </div>
 
-              {/* Category Skills */}
-              {expandedCategories.has(category) && (
-                <div className="skills-category-list">
-                  {displayedSkills[category].map((skill) => (
-                    <button
-                      key={skill.id}
-                      type="button"
-                      className={`skills-item ${
-                        isEnabled(skill.id) ? "enabled" : ""
-                      }`}
-                      onClick={() => handleSkillClick(skill)}
-                      title={skill.description}
-                    >
-                      <div className="skills-item-checkbox">
-                        {isEnabled(skill.id) && <Check size={12} />}
-                      </div>
-                      <div className="skills-item-content">
-                        <div className="skills-item-header">
-                          {skill.icon && (
-                            <span className="skills-item-icon">
-                              {skill.icon}
-                            </span>
-                          )}
-                          <span className="skills-item-name">{skill.name}</span>
-                        </div>
-                        <div className="skills-item-description">
-                          {skill.description}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+        {/* Content */}
+        <div className="skills-panel-content">
+          {isLoading && (
+            <div className="skills-loading">
+              <div className="skills-spinner"></div>
+              <span>Carregando skills...</span>
             </div>
-          ))
-        )}
-      </div>
+          )}
 
-      {/* Footer */}
-      <div className="skills-panel-footer">
-        <span className="skills-panel-engine">
-          {t("skills.engine", "Engine")}: {engineId}
-        </span>
+          {error && (
+            <div className="skills-error">
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {!isLoading && !error && skills.length === 0 && (
+            <div className="skills-empty">
+              <span className="empty-icon">
+                {selectedTab === 'custom' ? '📁' : '📭'}
+              </span>
+              <p>
+                {selectedTab === 'custom' 
+                  ? 'Nenhuma skill customizada encontrada.\nCrie uma pasta em .skills/ com SKILL.md'
+                  : `Nenhuma skill native do ${PROVIDER_LABELS[selectedTab]} encontrada.`
+                }
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !error && skills.length > 0 && (
+            <div className="skills-list">
+              {skills.map(skill => (
+                <SkillCard
+                  key={skill.id}
+                  skill={skill}
+                  enabled={isSkillEnabled(skill.id)}
+                  onToggle={() => toggleSkill(skill.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="skills-panel-footer">
+          <p className="skills-hint">
+            {currentProvider 
+              ? `Skills ativas para ${PROVIDER_LABELS[currentProvider]}`
+              : 'Selecione um provider para usar skills'
+            }
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
-/**
- * Compact skill button for toolbar integration
- */
-export interface SkillButtonProps {
-  engineId: string;
-  onClick: () => void;
-  enabledCount?: number;
+// ============================================================
+// SkillCard - Card individual de uma skill
+// ============================================================
+
+interface SkillCardProps {
+  skill: Skill;
+  enabled: boolean;
+  onToggle: () => void;
 }
 
-export function SkillButton({ engineId, onClick, enabledCount }: SkillButtonProps) {
-  const { t } = useTranslation("chat");
+function SkillCard({ skill, enabled, onToggle }: SkillCardProps) {
+  const isNative = skill.isNative;
 
   return (
-    <button
-      type="button"
-      className="chat-toolbar-btn chat-toolbar-btn-bordered"
-      onClick={onClick}
-      title={t("skills.buttonTitle", "Skills")}
-    >
-      <span>🧩</span>
-      <span style={{ fontSize: 11 }}>{t("skills.shortTitle", "Skills")}</span>
-      {enabledCount !== undefined && enabledCount > 0 && (
-        <span className="chat-toolbar-badge">{enabledCount}</span>
+    <div className={`skill-card ${enabled ? '' : 'disabled'} ${isNative ? 'native' : 'custom'}`}>
+      <div className="skill-card-header">
+        <div className="skill-info">
+          <h3 className="skill-name">{skill.name}</h3>
+          <span className={`skill-badge ${skill.category}`}>
+            {PROVIDER_ICONS[skill.category]} {PROVIDER_LABELS[skill.category]}
+          </span>
+          {!isNative && (
+            <span className="skill-badge custom-badge">Custom</span>
+          )}
+        </div>
+        
+        {/* Toggle switch - só para skills nativas */}
+        {isNative && (
+          <label className="skill-toggle">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={onToggle}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        )}
+      </div>
+      
+      <p className="skill-description">{skill.description}</p>
+      
+      {skill.license && (
+        <span className="skill-meta">License: {skill.license}</span>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// SkillsButton - Botão para abrir o painel
+// ============================================================
+
+interface SkillsButtonProps {
+  onClick: () => void;
+  skillCount?: number;
+}
+
+export function SkillsButton({ onClick, skillCount }: SkillsButtonProps) {
+  return (
+    <button className="skills-btn" onClick={onClick} title="Skills">
+      <span className="skills-btn-icon">🎯</span>
+      <span className="skills-btn-label">Skills</span>
+      {skillCount !== undefined && skillCount > 0 && (
+        <span className="skills-btn-badge">{skillCount}</span>
       )}
     </button>
   );

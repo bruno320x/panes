@@ -1,33 +1,15 @@
-/**
- * Skills Module - Public API
- * 
- * Export all public interfaces and utilities for the skills system.
- */
+// ============================================================
+// Skills Module - API Pública
+// ============================================================
 
 // Types
-export type {
-  UnifiedSkill,
-  SkillCategory,
-  SkillScope,
-  SkillEngine,
-  CodexSkillData,
-  OpenCodeSkillData,
-  ClaudeSkillData,
-  SkillsStoreState,
-  SkillsChangeEvent,
-  NewSkillInput,
-  SkillUpdate,
-} from "../../components/skills/types";
+export * from './types';
 
-// Registry
-export { skillRegistry, generateSkillId, inferCategory } from "./skillRegistry";
-export type { SkillRegistry } from "./skillRegistry";
+// Service
+export { skillsService, SkillsService } from './skillsService';
 
-// Store
-export { skillsStore } from "./store";
+// Hook
+export { useSkills } from './useSkills';
 
-// Adapters
-export { CodexSkillsAdapter } from "./adapters/codexAdapter";
-export { OpenCodeAgentsAdapter } from "./adapters/openCodeAdapter";
-export { ClaudePersonasAdapter } from "./adapters/claudeAdapter";
-export type { SkillsAdapter } from "./adapters/types";
+// Components
+export { SkillsPanel, SkillsButton } from './SkillsPanel';
