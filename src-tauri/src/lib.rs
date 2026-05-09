@@ -343,6 +343,13 @@ pub fn run() {
             commands::skills::scan_skills,
             commands::skills::scan_all_skills,
             commands::skills::get_skill_content,
+            commands::mcp::mcp_list_servers,
+            commands::mcp::mcp_start_server,
+            commands::mcp::mcp_stop_server,
+            commands::mcp::mcp_list_tools,
+            commands::mcp::mcp_list_resources,
+            commands::mcp::mcp_call_tool,
+            commands::mcp::mcp_read_resource,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
@@ -373,13 +380,32 @@ struct ThreadUpdatedEvent {
 
 async fn run_codex_runtime_bridge(app: tauri::AppHandle, state: AppState) {
     let mut rx = state.engines.subscribe_codex_runtime_events();
+    const BRIDGE_CHANNEL_CAPACITY: usize = 256;
+
     loop {
-        match rx.recv().await {
-            Ok(event) => handle_codex_runtime_event(&app, &state, event).await,
-            Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
-                log::warn!("codex runtime bridge lagged and skipped {skipped} events");
+        // Use try_recv with a small async wait to avoid busy-spinning
+        // while still preventing event loss from channel overflow.
+        let event = tokio::time::timeout(
+            tokio::time::Duration::from_millis(50),
+            rx.recv(),
+        )
+        .await;
+
+        match event {
+            Ok(Ok(evt)) => handle_codex_runtime_event(&app, &state, evt).await,
+            Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped))) => {
+                log::warn!(
+                    "codex runtime bridge lagged and skipped {skipped} events (channel capacity: {BRIDGE_CHANNEL_CAPACITY})"
+                );
             }
-            Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+            Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => {
+                log::info!("codex runtime bridge channel closed, exiting bridge loop");
+                break;
+            }
+            Err(_) => {
+                // Timeout waiting for event, loop will retry
+                continue;
+            }
         }
     }
 }
@@ -698,12 +724,29 @@ async fn apply_codex_runtime_thread_update(
     sync_required: Option<bool>,
     sync_reason: Option<&str>,
 ) -> Option<ThreadDto> {
-    let thread = run_db(state.db.clone(), {
+    let thread = match run_db(state.db.clone(), {
         let engine_thread_id = engine_thread_id.to_string();
         move |db| db::threads::find_thread_by_engine_thread_id(db, "codex", &engine_thread_id)
     })
     .await
-    .ok()??;
+    {
+        Ok(Some(thread)) => thread,
+        Ok(None) => {
+            log::debug!(
+                "thread not found for engine thread id {} in codex runtime update",
+                engine_thread_id
+            );
+            return None;
+        }
+        Err(error) => {
+            log::warn!(
+                "failed to load thread for engine thread id {}: {}",
+                engine_thread_id,
+                error
+            );
+            return None;
+        }
+    };
 
     let has_local_turn = state.turns.get(&thread.id).await.is_some();
     let next_status = map_codex_runtime_status_to_local(raw_status, active_flags, has_local_turn);
@@ -716,7 +759,7 @@ async fn apply_codex_runtime_thread_update(
         sync_reason,
     );
 
-    run_db(state.db.clone(), {
+    if let Err(error) = run_db(state.db.clone(), {
         let thread_id = thread.id.clone();
         let title = title.map(str::to_string);
         let metadata = metadata.clone();
@@ -732,21 +775,42 @@ async fn apply_codex_runtime_thread_update(
         }
     })
     .await
-    .ok()
+    {
+        log::warn!("failed to persist thread runtime update for {}: {}", thread.id, error);
+        return None;
+    }
+
+    Some(thread)
 }
 
 async fn archive_codex_runtime_thread(
     state: &AppState,
     engine_thread_id: &str,
 ) -> Option<(String, String)> {
-    let thread = run_db(state.db.clone(), {
+    let thread = match run_db(state.db.clone(), {
         let engine_thread_id = engine_thread_id.to_string();
         move |db| db::threads::find_thread_by_engine_thread_id(db, "codex", &engine_thread_id)
     })
     .await
-    .ok()??;
+    {
+        Ok(Some(thread)) => thread,
+        Ok(None) => {
+            log::debug!(
+                "thread not found for engine thread id {} in archive",
+                engine_thread_id
+            );
+            return None;
+        }
+        Err(error) => {
+            log::warn!(
+                "failed to load thread for archive: {}",
+                error
+            );
+            return None;
+        }
+    };
 
-    run_db(state.db.clone(), {
+    match run_db(state.db.clone(), {
         let thread_id = thread.id.clone();
         move |db| match db::threads::archive_thread(db, &thread_id) {
             Ok(()) => Ok(()),
@@ -755,7 +819,13 @@ async fn archive_codex_runtime_thread(
         }
     })
     .await
-    .ok()?;
+    {
+        Ok(()) => {}
+        Err(error) => {
+            log::warn!("failed to archive thread {}: {}", thread.id, error);
+            return None;
+        }
+    }
 
     Some((thread.id, thread.workspace_id))
 }
@@ -764,16 +834,32 @@ async fn restore_codex_runtime_thread(
     state: &AppState,
     engine_thread_id: &str,
 ) -> Option<ThreadDto> {
-    let thread = run_db(state.db.clone(), {
+    let thread = match run_db(state.db.clone(), {
         let engine_thread_id = engine_thread_id.to_string();
         move |db| db::threads::find_thread_by_engine_thread_id(db, "codex", &engine_thread_id)
     })
     .await
-    .ok()??;
+    {
+        Ok(Some(thread)) => thread,
+        Ok(None) => {
+            log::debug!(
+                "thread not found for engine thread id {} in restore",
+                engine_thread_id
+            );
+            return None;
+        }
+        Err(error) => {
+            log::warn!(
+                "failed to load thread for restore: {}",
+                error
+            );
+            return None;
+        }
+    };
 
-    run_db(state.db.clone(), {
+    let existing = thread.clone();
+    match run_db(state.db.clone(), {
         let thread_id = thread.id.clone();
-        let existing = thread.clone();
         move |db| match db::threads::restore_thread(db, &thread_id) {
             Ok(restored) => Ok(restored),
             Err(error) if error.to_string().contains("not archived") => Ok(existing),
@@ -781,7 +867,13 @@ async fn restore_codex_runtime_thread(
         }
     })
     .await
-    .ok()
+    {
+        Ok(thread) => Some(thread),
+        Err(error) => {
+            log::warn!("failed to restore thread {}: {}", thread.id, error);
+            None
+        }
+    }
 }
 
 fn merge_codex_runtime_metadata(

@@ -8,6 +8,7 @@ import { getHarnessIcon } from "../shared/HarnessLogos";
 import type { EngineHealth, EngineInfo, EngineModel } from "../../types";
 import { OpenCodeProviderConnectModal } from "./OpenCodeProviderConnectModal";
 import { reasoningOptionsForModel } from "./reasoningEffort";
+import { isFeatureAvailable } from "./engineFeatureFlags";
 
 interface ModelPickerProps {
   engines: EngineInfo[];
@@ -659,14 +660,16 @@ export function ModelPicker({
 
           {/* Models panel */}
           <div className="mp-models">
-            {browsingEngine?.id !== "opencode" ? (
+            {/* Show header only for engines with flat model lists (not provider tree) */}
+            {!isFeatureAvailable(activeEngineId, "providerTree") ? (
               <div className="mp-models-header">
                 <span className="mp-models-title">{t("modelPicker.models")}</span>
                 <span className="mp-models-count">{activeModels.length}</span>
               </div>
             ) : null}
 
-            {browsingEngine?.id === "opencode"
+            {/* Use provider tree layout for engines that support it (e.g., OpenCode) */}
+            {isFeatureAvailable(activeEngineId, "providerTree")
               ? renderOpenCodeProviderTree()
               : renderFlatModelList()}
           </div>

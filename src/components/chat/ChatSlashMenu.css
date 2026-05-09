@@ -1,0 +1,42 @@
+/* Slash Menu Feature Flags Styles */
+.slash-menu-item-badge {
+  background: var(--warning, #f59e0b);
+  color: var(--text-inverse, #ffffff);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* N/A Badge - Unavailable Command Badge */
+.slash-menu-item-badge-na {
+  background: var(--warning, #f59e0b);
+  color: var(--text-inverse, #ffffff);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+/* Unavailable Command Item Styling */
+.slash-menu-item.slash-menu-item-unavailable {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slash-menu-item.slash-menu-item-unavailable .slash-menu-item-icon {
+  color: var(--warning, #f59e0b) !important;
+  opacity: 0.7;
+}
+
+.slash-menu-item.slash-menu-item-unavailable .slash-menu-item-name {
+  color: var(--text-2) !important;
+}
+
+/* Tooltip for unavailable commands */
+.slash-menu-item-unavailable[title] {
+  cursor: help;
+}

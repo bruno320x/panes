@@ -56,8 +56,7 @@ export function useSkills(initialTab?: SkillCategory): UseSkillsReturn {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: Implementar chamada real ao backend
-      // Por enquanto simula dados para desenvolvimento
+      // Carregar skills via skillsService (que usa invoke do Tauri)
       const results = await skillsService.scanAllProviders();
       const skills = results.flatMap(r => r.skills);
       setAllSkills(skills);

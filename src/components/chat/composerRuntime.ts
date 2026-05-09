@@ -1,6 +1,7 @@
 import type { ComposerRuntimeSnapshot } from "../../lib/newThreadRuntime";
 import type { EngineModel } from "../../types";
 import { resolveReasoningEffortForModel } from "./reasoningEffort";
+import { isFeatureAvailable } from "./engineFeatureFlags";
 
 export type ComposerServiceTierValue = "inherit" | "fast" | "flex";
 
@@ -35,9 +36,8 @@ export function buildComposerRuntimeSnapshot({
     engineId: selectedEngineId,
     modelId: selectedModel.id,
     reasoningEffort: resolveReasoningEffortForModel(selectedModel, selectedEffort),
-    serviceTier:
-      selectedEngineId === "codex"
-        ? normalizeComposerServiceTier(selectedServiceTier)
-        : null,
+    serviceTier: isFeatureAvailable(selectedEngineId, "serviceTier")
+      ? normalizeComposerServiceTier(selectedServiceTier)
+      : null,
   };
 }

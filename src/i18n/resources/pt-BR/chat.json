@@ -524,6 +524,7 @@
     "panels": {
       "skills": {
         "title": "Skills",
+        "panelTitle": "Painel de Skills",
         "empty": "Nenhuma skill carregada neste runtime.",
         "description": "Ver skills carregadas do Codex"
       },

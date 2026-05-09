@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { createPortal } from "react-dom";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
@@ -22,7 +22,12 @@ import {
   PillBottle,
   BellRing,
   Globe,
+  X,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import "./Sidebar.css";
 import { useChatStore } from "../../stores/chatStore";
 import { useThreadStore } from "../../stores/threadStore";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
@@ -47,8 +52,10 @@ import { handleDragMouseDown, handleDragDoubleClick } from "../../lib/windowDrag
 import { createAndActivateWorkspaceThread } from "../../lib/newThreadActions";
 import { UpdateDialog } from "../onboarding/UpdateDialog";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
+import { SidebarSkeleton } from "../shared/Skeleton";
 import { WorkspaceMoreMenu } from "../workspace/WorkspaceMoreMenu";
 import { normalizeSidebarCollapsedState } from "./sidebarCollapseState";
+import { useThemeStore, type ThemeMode } from "../../stores/themeStore";
 import type { Thread, Workspace } from "../../types";
 
 interface ProjectGroup {
@@ -122,6 +129,10 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
   const openTerminalNotificationSettings = useTerminalNotificationSettingsStore((s) => s.openModal);
   const hasUpdate = updateStatus === "available" && !updateSnoozed;
   const keepAwakeAvailable = canToggleKeepAwake(keepAwakeState);
+  const currentTheme = useThemeStore((s) => s.mode);
+  const setThemeMode = useThemeStore((s) => s.setMode);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const projects = useMemo<ProjectGroup[]>(
     () =>
@@ -131,6 +142,26 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
       })),
     [workspaces, threads],
   );
+  
+  const filteredProjects = useMemo<ProjectGroup[]>(() => {
+    if (!searchQuery.trim()) {
+      return projects;
+    }
+    const query = searchQuery.toLowerCase();
+    return projects
+      .map((project) => ({
+        ...project,
+        threads: project.threads.filter((thread) => {
+          const titleMatch = thread.title?.toLowerCase().includes(query);
+          const workspaceMatch = project.workspace.name?.toLowerCase().includes(query) 
+            || project.workspace.rootPath.split("/").pop()?.toLowerCase().includes(query);
+          return titleMatch || workspaceMatch;
+        }),
+      }))
+      .filter((project) => project.threads.length > 0 || 
+        project.workspace.name?.toLowerCase().includes(query) ||
+        project.workspace.rootPath.split("/").pop()?.toLowerCase().includes(query));
+  }, [projects, searchQuery]);
   const workspaceIds = useMemo(() => workspaces.map((workspace) => workspace.id), [workspaces]);
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
@@ -153,7 +184,15 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
   const previousSyncedActiveWorkspaceIdRef = useRef<string | null>(activeWorkspaceId);
   const activeLocale = normalizeAppLocale(i18n.language);
 
-  const closeSettingsMenu = useCallback(() => setSettingsMenuOpen(false), []);
+  const closeSettingsMenu = useCallback(() => {
+    // AC3: Return focus to the trigger element when closing
+    // Use setTimeout to ensure focus happens after state update
+    const trigger = settingsTriggerRef.current;
+    setSettingsMenuOpen(false);
+    if (trigger) {
+      setTimeout(() => trigger.focus(), 0);
+    }
+  }, []);
 
   useEffect(() => {
     if (!settingsMenuOpen) return;
@@ -197,6 +236,42 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
     };
   }, []);
 
+  // AC3: Focus trap for settings menu - focus first element on open
+  useEffect(() => {
+    if (settingsMenuOpen && settingsMenuRef.current) {
+      const firstFocusable = settingsMenuRef.current.querySelector<HTMLElement>('button, [tabindex="0"]');
+      if (firstFocusable) {
+        // Use setTimeout to ensure DOM is fully rendered
+        setTimeout(() => firstFocusable.focus(), 0);
+      }
+    }
+  }, [settingsMenuOpen]);
+
+  // AC3: Focus trap for keyboard navigation within settings menu
+  useEffect(() => {
+    if (!settingsMenuOpen || !settingsMenuRef.current) return;
+
+    function handleTabKey(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      const focusable = settingsMenuRef.current!.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [tabindex="0"]',
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleTabKey, true);
+    return () => document.removeEventListener("keydown", handleTabKey, true);
+  }, [settingsMenuOpen]);
+
   const archivedThreads = useMemo(
     () =>
       activeWorkspaceId
@@ -219,6 +294,12 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
     );
     previousSyncedActiveWorkspaceIdRef.current = activeWorkspaceId;
   }, [workspaceIds, activeWorkspaceId]);
+
+  useEffect(() => {
+    if (workspaces.length > 0 || error) {
+      setIsLoading(false);
+    }
+  }, [workspaces, error]);
 
   useEffect(() => {
     void refreshArchivedWorkspaces();
@@ -378,6 +459,10 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
     || terminalNotificationUpdatingChatEnabled
     || terminalNotificationUpdatingTerminalEnabled;
 
+  if (isLoading) {
+    return <SidebarSkeleton />;
+  }
+
   return (
     <div
       style={{
@@ -452,6 +537,51 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
         </div>
       </div>
 
+      {/* ── Search filter ── */}
+      <div style={{ padding: "0 8px 8px", flexShrink: 0 }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <Search 
+            size={12} 
+            style={{ position: "absolute", left: 8, opacity: 0.4, pointerEvents: "none" }} 
+          />
+          <input
+            type="text"
+            placeholder={t("app:commandPalette.placeholder")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "6px 28px 6px 28px",
+              borderRadius: 6,
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.04)",
+              color: "var(--text-1)",
+              fontSize: 12,
+              outline: "none",
+            }}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              style={{
+                position: "absolute",
+                right: 6,
+                background: "none",
+                border: "none",
+                padding: 2,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: "var(--text-3)",
+              }}
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Scrollable content ── */}
       <div style={{ flex: 1, minHeight: 0, overflow: "auto", paddingBottom: 4, borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 4 }}>
         <div className="sb-section-label">
@@ -471,12 +601,59 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
 
         {projects.length === 0 ? (
           <div className="sb-empty">
-            {t("app:sidebar.noWorkspaces")}
-            <br />
-            {t("app:sidebar.openFolder")}
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 8,
+              padding: "20px 12px",
+            }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                background: "rgba(255,107,107,0.1)",
+                border: "1px solid rgba(255,107,107,0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <FolderGit2 size={20} style={{ color: "var(--accent)", opacity: 0.7 }} />
+              </div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--text-2)" }}>
+                {t("app:sidebar.noWorkspaces")}
+              </p>
+              <p style={{ margin: 0, fontSize: 11.5, color: "var(--text-3)", textAlign: "center" }}>
+                {t("app:sidebar.openFolder")}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeView !== "chat") setActiveView("chat");
+                  void onOpenFolder();
+                }}
+                style={{
+                  marginTop: 8,
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "var(--accent)",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Plus size={14} />
+                {t("app:sidebar.openWorkspace")}
+              </button>
+            </div>
           </div>
         ) : (
-          projects.map((project) => {
+          filteredProjects.map((project) => {
             const isActiveProject = project.workspace.id === activeWorkspaceId;
             const isCollapsed = collapsed[project.workspace.id] ?? false;
             const projectName = getWorkspaceLabel(project.workspace);
@@ -535,25 +712,30 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
                     className={`sb-thread-tree${constrainExpandedThreads ? " sb-thread-tree-scrollable" : ""}`}
                   >
                     {project.threads.length === 0 ? (
-                      <div className="sb-no-threads">{t("app:sidebar.noThreads")}</div>
+                      <div className="sb-no-threads">
+                        <MessageSquare size={16} className="sb-no-threads-icon" />
+                        <span className="sb-no-threads-text">{t("app:sidebar.noThreads")}</span>
+                        <button
+                          type="button"
+                          className="sb-no-threads-cta"
+                          onClick={() => void onCreateProjectThread(project.workspace)}
+                        >
+                          <Plus size={10} />
+                          {t("app:sidebar.newThread")}
+                        </button>
+                      </div>
                     ) : (
                       <>
                         {visibleThreads.map((thread, i) => {
                           const isActive = thread.id === activeThreadId;
                           return (
-                            <div
+                            <button
+                              type="button"
                               key={thread.id}
-                              role="button"
-                              tabIndex={0}
                               className={`sb-thread sb-thread-animate ${isActive ? "sb-thread-active" : ""}`}
-                              style={{ animationDelay: `${i * 20}ms` }}
+                              style={{ animationDelay: `${i * 20}ms`, display: 'flex', width: '100%', textAlign: 'left' }}
                               onClick={() => void onSelectThread(thread)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  void onSelectThread(thread);
-                                }
-                              }}
+                              aria-label={getThreadLabel(thread)}
                             >
                               <span className="sb-thread-title">
                                 {getThreadLabel(thread)}
@@ -578,7 +760,7 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
                                   <Archive size={11} />
                                 </button>
                               </span>
-                            </div>
+                            </button>
                           );
                         })}
 
@@ -629,7 +811,14 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
           {archivedOpen && (
             <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingBottom: 4 }}>
               {archivedWorkspaces.map((workspace) => (
-                <div key={workspace.id} className="sb-archived-item">
+                <button
+                  // AC2: Changed from div to button for keyboard accessibility
+                  type="button"
+                  key={workspace.id}
+                  className="sb-archived-item"
+                  onClick={() => void onRestoreWorkspace(workspace)}
+                  aria-label={t("app:sidebar.restoreWorkspace") + ": " + getWorkspaceLabel(workspace)}
+                >
                   <FolderGit2 size={12} style={{ flexShrink: 0, color: "var(--text-3)" }} />
                   <span
                     style={{
@@ -643,19 +832,25 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
                   >
                     {getWorkspaceLabel(workspace)}
                   </span>
-                  <button
-                    type="button"
+                  <span
                     className="sb-archived-restore"
-                    onClick={() => void onRestoreWorkspace(workspace)}
-                    title={t("app:sidebar.restoreWorkspace")}
+                    style={{ pointerEvents: 'none' }}
+                    aria-hidden="true"
                   >
                     <RotateCcw size={11} />
-                  </button>
-                </div>
+                  </span>
+                </button>
               ))}
 
               {archivedThreads.map((thread) => (
-                <div key={thread.id} className="sb-archived-item">
+                <button
+                  // AC2: Changed from div to button for keyboard accessibility
+                  type="button"
+                  key={thread.id}
+                  className="sb-archived-item"
+                  onClick={() => void onRestoreThread(thread)}
+                  aria-label={t("app:sidebar.restoreThread") + ": " + getThreadLabel(thread)}
+                >
                   <MessageSquare size={12} style={{ flexShrink: 0, color: "var(--text-3)" }} />
                   <span
                     style={{
@@ -669,19 +864,27 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
                   >
                     {getThreadLabel(thread)}
                   </span>
-                  <button
-                    type="button"
+                  <span
                     className="sb-archived-restore"
-                    onClick={() => void onRestoreThread(thread)}
-                    title={t("app:sidebar.restoreThread")}
+                    style={{ pointerEvents: 'none' }}
+                    aria-hidden="true"
                   >
                     <RotateCcw size={11} />
-                  </button>
-                </div>
+                  </span>
+                </button>
               ))}
 
               {archivedWorkspaces.length === 0 && archivedThreads.length === 0 && (
-                <div className="sb-no-threads">{t("app:sidebar.nothingArchived")}</div>
+                <div className="sb-nothing-archived">
+                  <Archive size={14} className="sb-nothing-archived-icon" />
+                  <span className="sb-nothing-archived-text">{t("app:sidebar.nothingArchived")}</span>
+                </div>
+              )}
+              
+              {archivedThreads.length === 0 && archivedWorkspaces.length > 0 && (
+                <div style={{ padding: "4px 8px", fontSize: 11, color: "var(--text-3)" }}>
+                  {archivedWorkspaces.length} archived {archivedWorkspaces.length === 1 ? "workspace" : "workspaces"}
+                </div>
               )}
             </div>
           )}
@@ -729,6 +932,9 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
           <div
             ref={settingsMenuRef}
             className="git-action-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("app:sidebar.settings")}
             style={{
               position: "fixed",
               bottom: window.innerHeight - settingsMenuPos.top,
@@ -892,6 +1098,69 @@ function SidebarContent({ onPin }: { onPin?: () => void }) {
                 letterSpacing: "0.06em",
               }}
             >
+              {t("app:sidebar.appearance")}
+            </div>
+            <div className="git-action-menu-item" style={{ justifyContent: "space-between", cursor: "default" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {currentTheme === "light" ? <Sun size={14} style={{ opacity: 0.5, flexShrink: 0 }} /> : 
+                 currentTheme === "dark" ? <Moon size={14} style={{ opacity: 0.5, flexShrink: 0 }} /> :
+                 <Monitor size={14} style={{ opacity: 0.5, flexShrink: 0 }} />}
+                {t("common:labels.theme")}
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  background: "rgba(255,255,255,0.06)",
+                  borderRadius: 6,
+                  padding: 2,
+                  gap: 2,
+                }}
+              >
+                {(["light", "dark", "system"] as ThemeMode[]).map((mode) => {
+                  const icons = { light: Sun, dark: Moon, system: Monitor };
+                  const Icon = icons[mode];
+                  const labels = { light: "☀", dark: "🌙", system: "◑" };
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setThemeMode(mode)}
+                      title={t(`common:labels.${mode}`)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 24,
+                        height: 20,
+                        fontSize: 12,
+                        lineHeight: 1,
+                        padding: 0,
+                        borderRadius: 4,
+                        border: "none",
+                        cursor: "pointer",
+                        background: currentTheme === mode ? "var(--accent)" : "transparent",
+                        color: currentTheme === mode ? "#fff" : "var(--text-3)",
+                        boxShadow: "none",
+                        transition: "background 0.15s, color 0.15s",
+                      }}
+                    >
+                      <Icon size={12} />
+                    </button>
+                  );
+                })}
+              </span>
+            </div>
+            <div className="git-action-menu-divider" />
+            <div
+              style={{
+                padding: "6px 10px 4px",
+                fontSize: 11,
+                color: "var(--text-3)",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}
+            >
               {t("app:sidebar.terminal")}
             </div>
             <button
@@ -1035,11 +1304,24 @@ function CollapsedRail({
     await createAndActivateWorkspaceThread(activeProject.id);
   }
 
+  // AC1: onKeyDown handler para CollapsedRail (Enter/Space)
+  function handleRailKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onHoverStart();
+    }
+  }
+
   return (
     <div
       className="sb-rail"
+      role="navigation"
+      aria-label={t("sidebar.navigation")}
+      // AC1: tabIndex={0} para permitir foco via teclado quando unpinned
+      tabIndex={0}
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
+      onKeyDown={handleRailKeyDown}
       style={{
         opacity: flyoutVisible ? 0 : 1,
         transition: "opacity 150ms var(--ease-out)",
@@ -1173,7 +1455,7 @@ function CollapsedRail({
    Main Sidebar export
    ───────────────────────────────────────────────────── */
 
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const sidebarPinned = useUiStore((s) => s.sidebarPinned);
   const toggleSidebarPin = useUiStore((s) => s.toggleSidebarPin);
   const [hovered, setHovered] = useState(false);
@@ -1232,4 +1514,4 @@ export function Sidebar() {
       )}
     </>
   );
-}
+});

@@ -79,7 +79,13 @@ impl FileTreeCache {
     }
 
     fn get(&self, repo_path: &str) -> Option<(Arc<Vec<FileTreeEntryDto>>, bool)> {
-        let mut map = self.inner.lock().unwrap();
+        let mut map = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                log::error!("file tree cache mutex poisoned, recovering");
+                poisoned.into_inner()
+            }
+        };
         Self::prune_expired_locked(&mut map);
         let entry = map.get(repo_path)?;
         Some((Arc::clone(&entry.entries), entry.truncated))
@@ -92,7 +98,13 @@ impl FileTreeCache {
         truncated: bool,
     ) -> Arc<Vec<FileTreeEntryDto>> {
         let arc = Arc::new(entries);
-        let mut map = self.inner.lock().unwrap();
+        let mut map = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                log::error!("file tree cache mutex poisoned, recovering");
+                poisoned.into_inner()
+            }
+        };
         Self::prune_expired_locked(&mut map);
         map.insert(
             repo_path.to_string(),
@@ -106,13 +118,25 @@ impl FileTreeCache {
     }
 
     pub fn invalidate_workspace(&self, root_path: &str) {
-        let mut map = self.inner.lock().unwrap();
+        let mut map = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                log::error!("file tree cache mutex poisoned, recovering");
+                poisoned.into_inner()
+            }
+        };
         map.remove(&file_tree_cache_key(root_path, FileTreeScanMode::Workspace));
     }
 
     pub fn invalidate_containing_path(&self, path: &str) {
         let normalized_path = path_utils::normalize_windows_path_string(path);
-        let mut map = self.inner.lock().unwrap();
+        let mut map = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                log::error!("file tree cache mutex poisoned, recovering");
+                poisoned.into_inner()
+            }
+        };
         map.retain(|key, _| {
             let cache_root = if let Some(workspace_root) = workspace_root_from_cache_key(key) {
                 workspace_root

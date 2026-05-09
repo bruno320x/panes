@@ -1,6 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
+import { getEngineFeatures } from "./engineFeatureFlags";
+import "./ChatSlashMenu.css";
 
 export interface SlashCommand {
   id: string;
@@ -9,12 +11,16 @@ export interface SlashCommand {
   icon: LucideIcon;
   codexOnly?: boolean;
   disabled?: boolean;
+  engineSpecific?: boolean;
+  /** Custom reason why this command is unavailable */
+  unavailableReason?: string;
 }
 
 interface ChatSlashMenuProps {
   visible: boolean;
   query: string;
   commands: SlashCommand[];
+  engineId?: string;
   anchorRef: React.RefObject<HTMLElement | null>;
   activeIndex: number;
   onSelect: (commandId: string) => void;
@@ -22,10 +28,37 @@ interface ChatSlashMenuProps {
   onActiveChange: (index: number) => void;
 }
 
+/**
+ * Check if a slash command is unavailable based on feature flags
+ */
+function isCommandUnavailable(
+  cmd: SlashCommand,
+  engineId: string,
+  availableSlashCommands: Set<string>,
+): { unavailable: boolean; reason?: string } {
+  // Explicitly disabled commands
+  if (cmd.disabled) {
+    return { unavailable: true, reason: cmd.unavailableReason || "This command is disabled" };
+  }
+
+  // Codex-only commands: check if command is available in feature flags
+  if (cmd.codexOnly) {
+    const commandKey = `/${cmd.name}`;
+    if (!availableSlashCommands.has(commandKey)) {
+      const reason = cmd.unavailableReason ||
+        `/${cmd.name} is not available for ${engineId} engine`;
+      return { unavailable: true, reason };
+    }
+  }
+
+  return { unavailable: false };
+}
+
 export function ChatSlashMenu({
   visible,
   query,
   commands,
+  engineId = "codex",
   anchorRef,
   activeIndex,
   onSelect,
@@ -34,6 +67,13 @@ export function ChatSlashMenu({
 }: ChatSlashMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ bottom: 0, left: 0, width: 0 });
+
+  // Get features for the current engine from feature flags
+  const engineFeatures = useMemo(
+    () => getEngineFeatures(engineId),
+    [engineId]
+  );
+  const availableSlashCommands = new Set<string>(engineFeatures.slashCommands);
 
   useLayoutEffect(() => {
     if (!visible || !anchorRef.current) return;
@@ -84,17 +124,26 @@ export function ChatSlashMenu({
       {commands.map((cmd, i) => {
         const Icon = cmd.icon;
         const isActive = i === activeIndex;
+        const { unavailable, reason } = isCommandUnavailable(cmd, engineId, availableSlashCommands);
+        const itemClassName = [
+          "slash-menu-item",
+          isActive ? "slash-menu-item-active" : "",
+          cmd.disabled ? "slash-menu-item-disabled" : "",
+          unavailable ? "slash-menu-item-unavailable" : "",
+        ].filter(Boolean).join(" ");
+
         return (
           <button
             key={cmd.id}
             type="button"
             data-slash-index={i}
-            className={`slash-menu-item${isActive ? " slash-menu-item-active" : ""}${cmd.disabled ? " slash-menu-item-disabled" : ""}`}
+            className={itemClassName}
             onPointerEnter={() => onActiveChange(i)}
             onClick={() => {
-              if (!cmd.disabled) onSelect(cmd.id);
+              if (!unavailable) onSelect(cmd.id);
             }}
-            disabled={cmd.disabled}
+            disabled={unavailable}
+            title={unavailable ? reason : undefined}
           >
             <span className="slash-menu-item-icon">
               <Icon size={14} />
@@ -103,7 +152,14 @@ export function ChatSlashMenu({
               <span className="slash-menu-item-name">{cmd.name[0].toUpperCase() + cmd.name.slice(1)}</span>
               <span className="slash-menu-item-desc">{cmd.description}</span>
             </span>
-            {cmd.codexOnly && (
+            {/* SC2: N/A Badge for unavailable commands */}
+            {unavailable && (
+              <span className="slash-menu-item-badge-na" title={reason}>
+                N/A
+              </span>
+            )}
+            {/* Show "Codex" badge for available codex-only commands */}
+            {cmd.codexOnly && availableSlashCommands.has(`/${cmd.name}`) && (
               <span className="slash-menu-item-badge">Codex</span>
             )}
           </button>

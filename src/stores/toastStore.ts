@@ -26,13 +26,14 @@ const DEFAULT_DURATIONS: Record<Toast["variant"], number> = {
   error: 8000,
 };
 
-let nextId = 0;
+// Generate unique IDs using crypto API for secure, unique identifiers
+const generateId = (): string => crypto.randomUUID();
 
 export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
 
   addToast: ({ variant, message, duration }) => {
-    const id = String(++nextId);
+    const id = generateId();
     const ms = duration ?? DEFAULT_DURATIONS[variant];
 
     set((state) => {

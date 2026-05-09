@@ -235,7 +235,7 @@ export function HarnessPanel() {
 
           {/* Content */}
           {phase === "scanning" && harnesses.length === 0 ? (
-            <div className="hp-loading">
+            <div className="hp-loading" role="status" aria-live="polite">
               <Loader2
                 size={20}
                 style={{ color: "var(--accent)", animation: "spin 1s linear infinite" }}

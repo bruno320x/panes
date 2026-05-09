@@ -21,7 +21,7 @@ tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "fs", "macros", "process", "io-util"] }
 tokio-util = "0.7"
 tokio-stream = "0.1"
 futures = "0.3"
@@ -61,3 +61,9 @@ custom-protocol = ["tauri/custom-protocol"]
 [profile.dev]
 # Keep local debug builds inspectable without letting `target/` explode as quickly.
 debug = 1
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+strip = true

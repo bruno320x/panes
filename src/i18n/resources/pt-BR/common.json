@@ -22,6 +22,10 @@
     "portugueseBrazil": "Português (Brasil)"
   },
   "labels": {
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Sistema"
   }
 }

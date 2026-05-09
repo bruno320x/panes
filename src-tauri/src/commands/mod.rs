@@ -4,6 +4,7 @@ pub mod engines;
 pub mod files;
 pub mod git;
 pub mod harness;
+pub mod mcp;
 pub mod power;
 pub mod setup;
 pub mod skills;

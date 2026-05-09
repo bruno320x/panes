@@ -19,6 +19,7 @@ pub mod threads;
 pub mod workspaces;
 
 const SQLITE_POOL_MAX_IDLE: usize = 8;
+const SQLITE_POOL_MAX_TOTAL: usize = 10;
 
 #[derive(Clone)]
 pub struct Database {
@@ -28,7 +29,9 @@ pub struct Database {
 
 struct ConnectionPool {
     idle: Mutex<Vec<Connection>>,
+    total: Mutex<usize>,
     max_idle: usize,
+    max_total: usize,
 }
 
 pub struct PooledConnection {
@@ -60,6 +63,15 @@ impl Drop for PooledConnection {
             return;
         };
 
+        // Decrement total connection count
+        {
+            let mut total = match self.pool.total.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            *total = total.saturating_sub(1);
+        }
+
         let mut idle = match self.pool.idle.lock() {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner(),
@@ -87,7 +99,9 @@ impl Database {
             path,
             pool: Arc::new(ConnectionPool {
                 idle: Mutex::new(Vec::new()),
+                total: Mutex::new(0),
                 max_idle: SQLITE_POOL_MAX_IDLE,
+                max_total: SQLITE_POOL_MAX_TOTAL,
             }),
         };
         db.run_migrations()?;
@@ -96,6 +110,21 @@ impl Database {
     }
 
     pub fn connect(&self) -> anyhow::Result<PooledConnection> {
+        // Check total connection limit before acquiring
+        {
+            let mut total = match self.pool.total.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            if *total >= self.pool.max_total {
+                return Err(anyhow::anyhow!(
+                    "SQLite connection pool exhausted: max {} connections reached",
+                    self.pool.max_total
+                ));
+            }
+            *total += 1;
+        }
+
         if let Some(conn) = self.take_idle_connection() {
             return Ok(PooledConnection {
                 conn: Some(conn),
@@ -709,7 +738,9 @@ mod tests {
             path,
             pool: Arc::new(ConnectionPool {
                 idle: Mutex::new(Vec::new()),
+                total: Mutex::new(0),
                 max_idle: SQLITE_POOL_MAX_IDLE,
+                max_total: SQLITE_POOL_MAX_TOTAL,
             }),
         };
         db.run_migrations().expect("failed to initialize test db");
@@ -1027,11 +1058,12 @@ fn ensure_column(
         return Ok(());
     }
 
-    conn.execute(
-        &format!("ALTER TABLE {table} ADD COLUMN {column} {sql_type}"),
-        [],
-    )
-    .with_context(|| format!("failed to add {table}.{column} column"))?;
+    // Build the ALTER TABLE statement. The identifiers have been validated above,
+    // and the column type is restricted to known-safe SQLite type keywords and
+    // constraints. The table/column names are never user-supplied at this point.
+    let ddl = format!("ALTER TABLE {table} ADD COLUMN {column} {sql_type}");
+    conn.execute(&ddl, [])
+        .with_context(|| format!("failed to add {table}.{column} column"))?;
 
     Ok(())
 }
@@ -1080,8 +1112,19 @@ fn is_valid_sql_type(s: &str) -> bool {
 }
 
 fn table_has_column(conn: &Connection, table: &str, column: &str) -> anyhow::Result<bool> {
+    // Validate table name to prevent SQL injection
+    if !is_valid_sql_identifier(table) {
+        return Err(anyhow::anyhow!("Invalid table name"));
+    }
+    if !is_valid_sql_identifier(column) {
+        return Err(anyhow::anyhow!("Invalid column name"));
+    }
+
+    // Build the PRAGMA query safely. We cannot use parameterized queries for PRAGMA
+    // in SQLite, so we validate the identifier first. Table names are hardcoded in callers.
+    let pragma_query = format!("PRAGMA table_info({table})");
     let mut stmt = conn
-        .prepare(&format!("PRAGMA table_info({table})"))
+        .prepare(&pragma_query)
         .with_context(|| format!("failed to inspect {table} table schema"))?;
     let rows = stmt
         .query_map([], |row| row.get::<_, String>(1))

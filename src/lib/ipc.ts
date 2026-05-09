@@ -74,6 +74,7 @@ import type {
   WorkspaceGitSelectionStatus,
   Workspace
 } from "../types";
+import type { MCPInfo, MCPResource, MCPTool } from "../types/mcp";
 
 export const ipc = {
   getAppLocale: () => invoke<AppLocale>("get_app_locale"),
@@ -794,6 +795,15 @@ export const ipc = {
     invoke<InstallResult>("install_harness", { harnessId }),
   launchHarness: (harnessId: string) =>
     invoke<string>("launch_harness", { harnessId }),
+  mcpListServers: () => invoke<MCPInfo[]>("mcp_list_servers"),
+  mcpStartServer: (id: string) => invoke<void>("mcp_start_server", { id }),
+  mcpStopServer: (id: string) => invoke<void>("mcp_stop_server", { id }),
+  mcpListTools: (serverId: string) => invoke<MCPTool[]>("mcp_list_tools", { serverId }),
+  mcpListResources: (serverId: string) => invoke<MCPResource[]>("mcp_list_resources", { serverId }),
+  mcpCallTool: (serverId: string, toolName: string, toolArguments: object) =>
+    invoke<object>("mcp_call_tool", { serverId, toolName, arguments: toolArguments }),
+  mcpReadResource: (serverId: string, uri: string) =>
+    invoke<string>("mcp_read_resource", { serverId, uri }),
 };
 
 export async function listenThreadEvents(

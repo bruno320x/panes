@@ -63,6 +63,8 @@ import { recordPerfMetric } from "../../lib/perfTelemetry";
 import { isMacDesktop, usesCustomWindowFrame } from "../../lib/windowActions";
 import { MessageBlocks, shouldShowClaudeUnsupportedApproval } from "./MessageBlocks";
 import { resolveEngineCapabilities } from "./engineCapabilities";
+import { EngineFeatureRenderer } from "./EngineFeatureRenderer";
+import { getEngineFeatures } from "./engineFeatureFlags";
 import { buildCodexInputItems } from "./codexInputItems";
 import {
   getPlanImplementationCodingMessage,
@@ -97,6 +99,8 @@ import { OpenCodeAgentPicker } from "./OpenCodeAgentPicker";
 import { ChatSlashMenu, type SlashCommand } from "./ChatSlashMenu";
 import { ChatCommandPanel, type ActiveSlashCommand } from "./ChatCommandPanel";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
+import { EmptyState } from "../shared/EmptyState";
+import { ChatSkeleton } from "../shared/Skeleton";
 import { handleDragMouseDown, handleDragDoubleClick } from "../../lib/windowDrag";
 import { shouldSubmitChatInput } from "./chatInputShortcuts";
 import type {
@@ -1566,7 +1570,7 @@ interface ChatPanelProps {
   embedded?: boolean;
 }
 
-export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
+export const ChatPanel = memo(function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
   const { t } = useTranslation("chat");
   const renderStartedAtRef = useRef(performance.now());
   renderStartedAtRef.current = performance.now();
@@ -1841,6 +1845,10 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
   );
   const selectedModelSupportsPersonality = selectedEngineId === "codex" &&
     selectedModel?.supportsPersonality === true;
+  
+  // Derive engine features for consistent feature checks
+  const engineFeatures = useMemo(() => getEngineFeatures(selectedEngineId), [selectedEngineId]);
+  
   const codexConfigActiveCount =
     (selectedPersonality !== "inherit" ? 1 : 0) +
     (selectedServiceTier !== "inherit" ? 1 : 0) +
@@ -3735,8 +3743,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
           name: "skills",
           description: t("slashCommands.panels.skills.description"),
           icon: Sparkles,
-          codexOnly: true,
-          disabled: !isCodexEngine,
+          disabled: !activeWorkspaceId,
         },
         {
           id: "mcp",
@@ -4872,6 +4879,22 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
                 <FilePen size={12} />
               </button>
             </div>
+
+            {/* Skills Panel Button */}
+            <button
+              type="button"
+              title={t("skills.panelTitle")}
+              onClick={() => setShowSkillsPanel(true)}
+              className="layout-mode-btn"
+              style={{
+                padding: "4px 8px",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Sparkles size={12} />
+            </button>
           </div>
           )}
         </div>
@@ -5083,42 +5106,34 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
               }}
             >
         {messages.length === 0 ? (
-          <div
-            className="animate-fade-in"
-            style={{
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 16,
-              color: "var(--text-3)",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: "var(--radius-lg)",
-                background: "var(--bg-3)",
-                border: "1px solid var(--border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Send size={22} style={{ color: "var(--text-2)", opacity: 0.5 }} />
-            </div>
-            <div>
-              <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 500, color: "var(--text-2)" }}>
-                {t("panel.startConversation")}
-              </p>
-              <p style={{ margin: 0, fontSize: 12.5 }}>
-                {t("panel.emptyHint")}
-              </p>
-            </div>
-          </div>
+          status === "streaming" || status === "awaiting_approval" ? (
+            <ChatSkeleton />
+          ) : (
+            <EmptyState
+              icon="sparkles"
+              title={t("panel.startConversation")}
+              description={t("panel.emptyHint")}
+              action={
+                activeWorkspaceId
+                  ? {
+                    label: t("app:sidebar.newThread"),
+                    onClick: () => {
+                      void createThread({
+                        workspaceId: activeWorkspaceId,
+                        repoId: activeRepo?.id ?? null,
+                      }).then((threadId) => {
+                        if (threadId) {
+                          void bindChatThread(threadId);
+                        }
+                      });
+                    },
+                    icon: <Plus size={16} />,
+                  }
+                  : undefined
+              }
+              size="large"
+            />
+          )
         ) : virtualizationEnabled && virtualWindow ? (
           <div style={{ display: "flex", flexDirection: "column" }}>
             {virtualWindow.topSpacerHeight > 0 && (
@@ -5725,6 +5740,7 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
                   visible={slashMenuOpen && filteredSlashCommands.length > 0}
                   query={slashMenuQuery}
                   commands={filteredSlashCommands}
+                  engineId={selectedEngineId}
                   anchorRef={inputRef}
                   activeIndex={slashMenuActiveIndex}
                   onSelect={handleSlashCommandSelect}
@@ -5850,7 +5866,31 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
                         <Zap size={11} />
                         <span style={{ fontSize: 11 }}>{t("modelPicker.fastOn")}</span>
                       </button>
+
+                      {/* Skills button */}
+                      <button
+                        type="button"
+                        className="chat-toolbar-btn"
+                        onClick={() => setShowSkillsPanel(true)}
+                        title={t("panel.skills") || "Skills"}
+                        disabled={!activeWorkspaceId}
+                      >
+                        <Sparkles size={12} />
+                      </button>
                     </>
+                  )}
+
+                  {/* Skills button for non-codex engines */}
+                  {(selectedEngineId === "claude" || selectedEngineId === "opencode") && (
+                    <button
+                      type="button"
+                      className="chat-toolbar-btn"
+                      onClick={() => setShowSkillsPanel(true)}
+                      title={t("panel.skills") || "Skills"}
+                      disabled={!activeWorkspaceId}
+                    >
+                      <Sparkles size={12} />
+                    </button>
                   )}
                 </>
               )}
@@ -6033,6 +6073,15 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
                 )}
               </div>
             </div>
+
+            {/* Skills Panel */}
+            {showSkillsPanel && (
+              <SkillsPanel
+                isOpen={showSkillsPanel}
+                onClose={() => setShowSkillsPanel(false)}
+                activeProvider={selectedEngineId}
+              />
+            )}
           </div>
 
           {/* Bottom status bar with context usage */}
@@ -6235,4 +6284,4 @@ export function ChatPanel({ embedded = false }: ChatPanelProps = {}) {
       />
     </div>
   );
-}
+});

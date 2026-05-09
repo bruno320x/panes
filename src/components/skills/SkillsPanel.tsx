@@ -3,8 +3,11 @@
 // ============================================================
 
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSkills } from '../../lib/skills/useSkills';
 import { Skill, SkillCategory, PROVIDER_LABELS, PROVIDER_ICONS } from '../../lib/skills/types';
+import { Skeleton } from '../shared/Skeleton';
+import { toast } from '../../stores/toastStore';
 import './SkillsPanel.css';
 
 interface SkillsPanelProps {
@@ -127,9 +130,20 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
         {/* Content */}
         <div className="skills-panel-content">
           {isLoading && (
-            <div className="skills-loading">
-              <div className="skills-spinner"></div>
-              <span>Carregando skills...</span>
+            <div className="skills-skeleton" role="status" aria-live="polite" aria-label="Carregando skills">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="skeleton-card">
+                  <div className="skeleton-card-header">
+                    <div className="skeleton-card-info">
+                      <Skeleton variant="rectangular" className="skeleton-name" height={16} />
+                      <Skeleton variant="rectangular" className="skeleton-badge" height={18} />
+                    </div>
+                    <Skeleton variant="rectangular" className="skeleton-toggle" height={22} borderRadius={11} />
+                  </div>
+                  <Skeleton variant="rectangular" className="skeleton-description" height={14} />
+                  <Skeleton variant="rectangular" className="skeleton-description short" height={14} style={{ marginTop: 6 }} />
+                </div>
+              ))}
             </div>
           )}
 
@@ -142,15 +156,47 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
 
           {!isLoading && !error && skills.length === 0 && (
             <div className="skills-empty">
-              <span className="empty-icon">
-                {selectedTab === 'custom' ? '📁' : '📭'}
-              </span>
-              <p>
+              <div className="empty-illustration">
+                {selectedTab === 'custom' ? (
+                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="8" y="16" width="48" height="36" rx="4" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
+                    <path d="M24 32H40M32 24V40" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+                    <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" opacity="0.2"/>
+                  </svg>
+                ) : (
+                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 28L32 20L44 28V44L32 52L20 44V28Z" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
+                    <path d="M32 20V52M20 28L44 44M44 28L20 44" stroke="currentColor" strokeWidth="2" opacity="0.2"/>
+                  </svg>
+                )}
+              </div>
+              <p className="empty-title">
                 {selectedTab === 'custom' 
-                  ? 'Nenhuma skill customizada encontrada.\nCrie uma pasta em .skills/ com SKILL.md'
-                  : `Nenhuma skill native do ${PROVIDER_LABELS[selectedTab]} encontrada.`
+                  ? 'Nenhuma skill customizada encontrada' 
+                  : `Nenhuma skill native do ${PROVIDER_LABELS[selectedTab]}`
                 }
               </p>
+              <p className="empty-description">
+                {selectedTab === 'custom' 
+                  ? 'Crie sua primeira skill adicionando uma pasta em .skills/ com arquivo SKILL.md'
+                  : 'Skills nativas são carregadas automaticamente quando configuradas no projeto'
+                }
+              </p>
+              {selectedTab === 'custom' && (
+                <button
+                  type="button"
+                  className="empty-cta-btn"
+                  onClick={() => {
+                    // Open folder or show instructions
+                    toast.info('Adicione skills em .skills/nome-da-skill/SKILL.md');
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14M5 12h14"/>
+                  </svg>
+                  Criar primeira skill
+                </button>
+              )}
             </div>
           )}
 

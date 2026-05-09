@@ -1,0 +1,217 @@
+/* ═══════════════════════════════════════════════════════════════
+   Sidebar Empty States & Skeleton Styles
+   UX2: Empty States with CTA | UX3: Skeleton Screens
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Empty State Base ── */
+.sb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.sb-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sb-empty-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.sb-empty-description {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.sb-empty-cta {
+  margin-top: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.sb-empty-cta:hover {
+  opacity: 0.85;
+}
+
+/* ── No Threads Empty State ── */
+.sb-no-threads {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+}
+
+.sb-no-threads-icon {
+  color: var(--text-3);
+  opacity: 0.5;
+}
+
+.sb-no-threads-text {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.sb-no-threads-cta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.sb-no-threads-cta:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Nothing Archived Empty State ── */
+.sb-nothing-archived {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+}
+
+.sb-nothing-archived-icon {
+  color: var(--text-3);
+  opacity: 0.4;
+}
+
+.sb-nothing-archived-text {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Skeleton Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+.sb-skeleton {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Skeleton animation keyframes */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Base skeleton element */
+.skeleton-item,
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite linear;
+  border-radius: 4px;
+}
+
+/* Nav items skeleton */
+.sb-skeleton-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Workspace section skeleton */
+.sb-skeleton-workspace-header {
+  margin-top: 8px;
+}
+
+/* Thread list skeleton */
+.sb-skeleton-threads {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Extra variant with lighter shimmer for better visibility */
+.skeleton-item-light {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite linear;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Chat Panel Skeleton
+   ═══════════════════════════════════════════════════════════════ */
+
+.chat-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.chat-skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.chat-skeleton-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-skeleton-bubble {
+  border-radius: 12px;
+}
+
+.chat-skeleton-input {
+  margin-top: auto;
+  padding-top: 16px;
+}
