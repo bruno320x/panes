@@ -681,6 +681,7 @@ describe("terminalStore.createMultiSessionGroup", () => {
       loading: false,
       error: undefined,
     });
+    await useTerminalStore.getState().prepareWorkspaceActivation("ws-1", workspace.rootPath);
 
     const applied = await useTerminalStore.getState().materializeWorkspaceStartupPreset("ws-1", {
       version: 1,
@@ -737,6 +738,7 @@ describe("terminalStore.createMultiSessionGroup", () => {
       loadedOnce: false,
       error: null,
     });
+    await useTerminalStore.getState().prepareWorkspaceActivation("ws-1", workspace.rootPath);
 
     const applied = await useTerminalStore.getState().materializeWorkspaceStartupPreset("ws-1", {
       version: 1,
@@ -788,6 +790,7 @@ describe("terminalStore.createMultiSessionGroup", () => {
       .mockRejectedValueOnce(new Error("create failed"))
       .mockRejectedValueOnce(new Error("create failed"))
       .mockResolvedValueOnce(makeSession("s2"));
+    await useTerminalStore.getState().prepareWorkspaceActivation("ws-1", workspace.rootPath);
 
     const applied = await useTerminalStore.getState().materializeWorkspaceStartupPreset("ws-1", {
       version: 1,
@@ -933,6 +936,7 @@ describe("terminalStore.createMultiSessionGroup", () => {
     useTerminalStore.setState({
       workspaces: {
         "ws-1": {
+          workspaceRootPath: workspace.rootPath,
           isOpen: false,
           layoutMode: "chat",
           preEditorLayoutMode: "chat",

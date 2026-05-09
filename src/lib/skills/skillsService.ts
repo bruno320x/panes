@@ -173,9 +173,9 @@ export class SkillsService {
   /**
    * Escaneia skills de um provider específico via Tauri
    */
-  async scanProvider(provider: SkillProvider): Promise<ScanResult> {
+  async scanProvider(provider: SkillProvider, cwd?: string | null): Promise<ScanResult> {
     try {
-      const result = await invoke<TauriScanResult>('scan_skills', { provider });
+      const result = await invoke<TauriScanResult>('scan_skills', { provider, cwd });
       return this.convertScanResult(result);
     } catch (error) {
       console.error(`Error scanning ${provider} skills:`, error);
@@ -191,15 +191,15 @@ export class SkillsService {
   /**
    * Escaneia todas as pastas de skills dos providers
    */
-  async scanAllProviders(): Promise<ScanResult[]> {
+  async scanAllProviders(cwd?: string | null): Promise<ScanResult[]> {
     try {
-      const results = await invoke<TauriScanResult[]>('scan_all_skills');
+      const results = await invoke<TauriScanResult[]>('scan_all_skills', { cwd });
       return results.map(r => this.convertScanResult(r));
     } catch (error) {
       console.error('Error scanning all skills:', error);
       // Fallback: escanear cada um individualmente
       const providers: SkillProvider[] = ['opencode', 'codex', 'claude', 'custom'];
-      return Promise.all(providers.map(p => this.scanProvider(p)));
+      return Promise.all(providers.map(p => this.scanProvider(p, cwd)));
     }
   }
 

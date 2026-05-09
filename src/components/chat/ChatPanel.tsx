@@ -63,8 +63,6 @@ import { recordPerfMetric } from "../../lib/perfTelemetry";
 import { isMacDesktop, usesCustomWindowFrame } from "../../lib/windowActions";
 import { MessageBlocks, shouldShowClaudeUnsupportedApproval } from "./MessageBlocks";
 import { resolveEngineCapabilities } from "./engineCapabilities";
-import { EngineFeatureRenderer } from "./EngineFeatureRenderer";
-import { getEngineFeatures } from "./engineFeatureFlags";
 import { buildCodexInputItems } from "./codexInputItems";
 import {
   getPlanImplementationCodingMessage,
@@ -1847,8 +1845,6 @@ export const ChatPanel = memo(function ChatPanel({ embedded = false }: ChatPanel
     selectedModel?.supportsPersonality === true;
   
   // Derive engine features for consistent feature checks
-  const engineFeatures = useMemo(() => getEngineFeatures(selectedEngineId), [selectedEngineId]);
-  
   const codexConfigActiveCount =
     (selectedPersonality !== "inherit" ? 1 : 0) +
     (selectedServiceTier !== "inherit" ? 1 : 0) +
@@ -6075,13 +6071,6 @@ export const ChatPanel = memo(function ChatPanel({ embedded = false }: ChatPanel
             </div>
 
             {/* Skills Panel */}
-            {showSkillsPanel && (
-              <SkillsPanel
-                isOpen={showSkillsPanel}
-                onClose={() => setShowSkillsPanel(false)}
-                activeProvider={selectedEngineId}
-              />
-            )}
           </div>
 
           {/* Bottom status bar with context usage */}
@@ -6264,6 +6253,7 @@ export const ChatPanel = memo(function ChatPanel({ embedded = false }: ChatPanel
         <SkillsPanel
           isOpen={showSkillsPanel}
           activeProvider={selectedEngineId}
+          workspaceRoot={activeWorkspace?.rootPath ?? null}
           onClose={() => setShowSkillsPanel(false)}
         />
       )}

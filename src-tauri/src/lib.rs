@@ -385,11 +385,7 @@ async fn run_codex_runtime_bridge(app: tauri::AppHandle, state: AppState) {
     loop {
         // Use try_recv with a small async wait to avoid busy-spinning
         // while still preventing event loss from channel overflow.
-        let event = tokio::time::timeout(
-            tokio::time::Duration::from_millis(50),
-            rx.recv(),
-        )
-        .await;
+        let event = tokio::time::timeout(tokio::time::Duration::from_millis(50), rx.recv()).await;
 
         match event {
             Ok(Ok(evt)) => handle_codex_runtime_event(&app, &state, evt).await,
@@ -776,7 +772,11 @@ async fn apply_codex_runtime_thread_update(
     })
     .await
     {
-        log::warn!("failed to persist thread runtime update for {}: {}", thread.id, error);
+        log::warn!(
+            "failed to persist thread runtime update for {}: {}",
+            thread.id,
+            error
+        );
         return None;
     }
 
@@ -802,10 +802,7 @@ async fn archive_codex_runtime_thread(
             return None;
         }
         Err(error) => {
-            log::warn!(
-                "failed to load thread for archive: {}",
-                error
-            );
+            log::warn!("failed to load thread for archive: {}", error);
             return None;
         }
     };
@@ -849,10 +846,7 @@ async fn restore_codex_runtime_thread(
             return None;
         }
         Err(error) => {
-            log::warn!(
-                "failed to load thread for restore: {}",
-                error
-            );
+            log::warn!("failed to load thread for restore: {}", error);
             return None;
         }
     };

@@ -4,6 +4,7 @@
 
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AlertTriangle, Plus, Target, X } from 'lucide-react';
 import { useSkills } from '../../lib/skills/useSkills';
 import { Skill, SkillCategory, PROVIDER_LABELS, PROVIDER_ICONS } from '../../lib/skills/types';
 import { Skeleton } from '../shared/Skeleton';
@@ -14,6 +15,7 @@ interface SkillsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   activeProvider?: string;
+  workspaceRoot?: string | null;
 }
 
 const TABS: { category: SkillCategory; label: string; icon: string }[] = [
@@ -27,7 +29,8 @@ function isSkillCategory(value: string | undefined): value is SkillCategory {
   return value === 'opencode' || value === 'codex' || value === 'claude' || value === 'custom';
 }
 
-export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProps) {
+export function SkillsPanel({ isOpen, onClose, activeProvider, workspaceRoot }: SkillsPanelProps) {
+  const { t } = useTranslation('app');
   const initialTab = isSkillCategory(activeProvider) ? activeProvider : undefined;
   const {
     skillsByCategory,
@@ -41,7 +44,7 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
     getCountByCategory,
     isLoading,
     error,
-  } = useSkills(initialTab);
+  } = useSkills(initialTab, workspaceRoot);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,6 +64,9 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
   if (isOpen === false) return null;
 
   const skills = filteredSkillsByCategory[selectedTab] || [];
+  const activeProviderLabel = isSkillCategory(activeProvider)
+    ? PROVIDER_LABELS[activeProvider]
+    : undefined;
 
   return (
     <div className="skills-panel-overlay" onClick={onClose}>
@@ -74,11 +80,17 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
         {/* Header */}
         <div className="skills-panel-header">
           <div className="skills-panel-title">
-            <span className="skills-panel-icon">🎯</span>
+            <Target className="skills-panel-icon" size={18} aria-hidden="true" />
             <h2 id="skills-panel-title">Skills</h2>
           </div>
-          <button type="button" className="skills-panel-close" onClick={onClose} aria-label="Fechar painel de skills">
-            ✕
+          <button
+            type="button"
+            className="skills-panel-close"
+            onClick={onClose}
+            aria-label={t('skillsPanel.close')}
+            title={t('skillsPanel.close')}
+          >
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
 
@@ -86,7 +98,7 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
         <div className="skills-search">
           <input
             type="text"
-            placeholder="Buscar skills..."
+            placeholder={t('skillsPanel.searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="skills-search-input"
@@ -96,9 +108,10 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
               type="button"
               className="skills-search-clear"
               onClick={() => setSearchQuery('')}
-              aria-label="Limpar busca"
+              aria-label={t('skillsPanel.clearSearch')}
+              title={t('skillsPanel.clearSearch')}
             >
-              ✕
+              <X size={14} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -130,7 +143,7 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
         {/* Content */}
         <div className="skills-panel-content">
           {isLoading && (
-            <div className="skills-skeleton" role="status" aria-live="polite" aria-label="Carregando skills">
+            <div className="skills-skeleton" role="status" aria-live="polite" aria-label={t('skillsPanel.loading')}>
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="skeleton-card">
                   <div className="skeleton-card-header">
@@ -149,7 +162,7 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
 
           {error && (
             <div className="skills-error">
-              <span>⚠️</span>
+              <AlertTriangle size={16} aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
@@ -172,14 +185,14 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
               </div>
               <p className="empty-title">
                 {selectedTab === 'custom' 
-                  ? 'Nenhuma skill customizada encontrada' 
-                  : `Nenhuma skill native do ${PROVIDER_LABELS[selectedTab]}`
+                  ? t('skillsPanel.empty.customTitle')
+                  : t('skillsPanel.empty.nativeTitle', { provider: PROVIDER_LABELS[selectedTab] })
                 }
               </p>
               <p className="empty-description">
                 {selectedTab === 'custom' 
-                  ? 'Crie sua primeira skill adicionando uma pasta em .skills/ com arquivo SKILL.md'
-                  : 'Skills nativas são carregadas automaticamente quando configuradas no projeto'
+                  ? t('skillsPanel.empty.customDescription')
+                  : t('skillsPanel.empty.nativeDescription')
                 }
               </p>
               {selectedTab === 'custom' && (
@@ -187,14 +200,11 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
                   type="button"
                   className="empty-cta-btn"
                   onClick={() => {
-                    // Open folder or show instructions
-                    toast.info('Adicione skills em .skills/nome-da-skill/SKILL.md');
+                    toast.info(t('skillsPanel.empty.customInstructionsToast'));
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 5v14M5 12h14"/>
-                  </svg>
-                  Criar primeira skill
+                  <Plus size={14} aria-hidden="true" />
+                  {t('skillsPanel.empty.customInstructionsAction')}
                 </button>
               )}
             </div>
@@ -217,9 +227,9 @@ export function SkillsPanel({ isOpen, onClose, activeProvider }: SkillsPanelProp
         {/* Footer */}
         <div className="skills-panel-footer">
           <p className="skills-hint">
-            {activeProvider 
-              ? `Skills ativas para ${PROVIDER_LABELS[activeProvider as keyof typeof PROVIDER_LABELS]}`
-              : 'Selecione um provider para usar skills'
+            {activeProviderLabel
+              ? t('skillsPanel.footer.activeProvider', { provider: activeProviderLabel })
+              : t('skillsPanel.footer.noProvider')
             }
           </p>
         </div>
@@ -239,6 +249,7 @@ interface SkillCardProps {
 }
 
 function SkillCard({ skill, enabled, onToggle }: SkillCardProps) {
+  const { t } = useTranslation('app');
   const isNative = skill.isNative;
 
   return (
@@ -250,7 +261,7 @@ function SkillCard({ skill, enabled, onToggle }: SkillCardProps) {
             {PROVIDER_ICONS[skill.category]} {PROVIDER_LABELS[skill.category]}
           </span>
           {!isNative && (
-            <span className="skill-badge custom-badge">Custom</span>
+            <span className="skill-badge custom-badge">{t('skillsPanel.customBadge')}</span>
           )}
         </div>
         
@@ -260,7 +271,7 @@ function SkillCard({ skill, enabled, onToggle }: SkillCardProps) {
             type="checkbox"
             checked={enabled}
             onChange={onToggle}
-            aria-label={`${enabled ? 'Desativar' : 'Ativar'} skill ${skill.name}`}
+            aria-label={t(enabled ? 'skillsPanel.disableSkill' : 'skillsPanel.enableSkill', { name: skill.name })}
           />
           <span className="toggle-slider"></span>
         </label>
@@ -269,7 +280,7 @@ function SkillCard({ skill, enabled, onToggle }: SkillCardProps) {
       <p className="skill-description">{skill.description}</p>
       
       {skill.license && (
-        <span className="skill-meta">License: {skill.license}</span>
+        <span className="skill-meta">{t('skillsPanel.license', { license: skill.license })}</span>
       )}
     </div>
   );
@@ -285,9 +296,11 @@ interface SkillsButtonProps {
 }
 
 export function SkillsButton({ onClick, skillCount }: SkillsButtonProps) {
+  const { t } = useTranslation('app');
+
   return (
-    <button type="button" className="skills-btn" onClick={onClick} title="Skills" aria-label="Abrir painel de skills">
-      <span className="skills-btn-icon">🎯</span>
+    <button type="button" className="skills-btn" onClick={onClick} title="Skills" aria-label={t('skillsPanel.open')}>
+      <Target className="skills-btn-icon" size={14} aria-hidden="true" />
       <span className="skills-btn-label">Skills</span>
       {skillCount !== undefined && skillCount > 0 && (
         <span className="skills-btn-badge">{skillCount}</span>

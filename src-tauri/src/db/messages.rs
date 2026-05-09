@@ -1094,15 +1094,12 @@ fn load_resolved_approvals_for_message_ids(
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs,
-        sync::{Arc, Mutex},
-    };
+    use std::fs;
 
     use serde_json::json;
 
     use crate::{
-        db::{actions, threads, workspaces, ConnectionPool, SQLITE_POOL_MAX_IDLE},
+        db::{actions, threads, workspaces},
         engines::events::ActionType,
     };
 
@@ -1110,15 +1107,7 @@ mod tests {
 
     fn test_db() -> Database {
         let path = std::env::temp_dir().join(format!("panes-messages-{}.db", Uuid::new_v4()));
-        let db = Database {
-            path,
-            pool: Arc::new(ConnectionPool {
-                idle: Mutex::new(Vec::new()),
-                max_idle: SQLITE_POOL_MAX_IDLE,
-            }),
-        };
-        db.run_migrations().expect("failed to run test migrations");
-        db
+        Database::open(path).expect("failed to open test database")
     }
 
     fn test_workspace(db: &Database) -> String {

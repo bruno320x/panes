@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tauri::Manager;
 
 // ============================================================
 // Tipos
@@ -28,28 +27,38 @@ pub struct ScanResult {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillsPreferences {
-    pub disabled_skills: Vec<String>,
-    pub last_tab: Option<String>,
-}
-
 // ============================================================
 // Paths de Skills por Provider
 // ============================================================
 
-fn get_skills_paths(provider: &str) -> Vec<PathBuf> {
+fn resolve_workspace_root(cwd: Option<&str>) -> PathBuf {
+    cwd.map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+}
+
+fn get_skills_paths(provider: &str, cwd: Option<&str>) -> Vec<PathBuf> {
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("~"));
-    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let workspace_root = resolve_workspace_root(cwd);
 
     match provider {
         "opencode" => vec![
-            cwd.join(".opencode/skills"),
+            workspace_root.join(".opencode/skills"),
             home.join(".config/opencode/skills"),
         ],
-        "codex" => vec![cwd.join(".codex/skills"), cwd.join(".claude/skills")],
-        "claude" => vec![cwd.join(".claude/skills"), home.join(".claude/skills")],
-        "custom" => vec![cwd.join(".skills"), cwd.join(".agents/skills")],
+        "codex" => vec![
+            workspace_root.join(".codex/skills"),
+            workspace_root.join(".claude/skills"),
+        ],
+        "claude" => vec![
+            workspace_root.join(".claude/skills"),
+            home.join(".claude/skills"),
+        ],
+        "custom" => vec![
+            workspace_root.join(".skills"),
+            workspace_root.join(".agents/skills"),
+        ],
         _ => vec![],
     }
 }
@@ -86,19 +95,11 @@ fn parse_frontmatter(content: &str) -> Option<(serde_json::Value, String)> {
     Some((serde_json::Value::Object(frontmatter), body))
 }
 
-fn parse_yaml_bool(value: &serde_json::Value) -> bool {
-    match value {
-        serde_json::Value::Bool(b) => *b,
-        serde_json::Value::String(s) => s == "true" || s == "TRUE",
-        _ => false,
-    }
-}
-
 // ============================================================
 // Scan Functions
 // ============================================================
 
-fn scan_directory(dir: &PathBuf) -> std::io::Result<Vec<SkillInfo>> {
+fn scan_directory(dir: &PathBuf, provider: &str) -> std::io::Result<Vec<SkillInfo>> {
     let mut skills = Vec::new();
 
     if !dir.exists() {
@@ -147,36 +148,16 @@ fn scan_directory(dir: &PathBuf) -> std::io::Result<Vec<SkillInfo>> {
                     .and_then(|v| v.as_str())
                     .map(String::from);
 
-                let id = format!(
-                    "{}:{}",
-                    dir.parent()
-                        .unwrap_or(dir)
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("custom"),
-                    folder_name
-                );
+                let id = format!("{provider}:{folder_name}");
 
                 skills.push(SkillInfo {
                     id,
                     name,
                     description,
-                    provider: dir
-                        .parent()
-                        .unwrap_or(dir)
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("custom")
-                        .to_string(),
-                    category: dir
-                        .parent()
-                        .unwrap_or(dir)
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("custom")
-                        .to_string(),
+                    provider: provider.to_string(),
+                    category: provider.to_string(),
                     path: skill_md.to_string_lossy().to_string(),
-                    is_native: true,
+                    is_native: provider != "custom",
                     enabled: true, // Será atualizado pelas preferências
                     license,
                     compatibility,
@@ -217,13 +198,13 @@ fn is_valid_skill_name(name: &str) -> bool {
 // ============================================================
 
 #[tauri::command]
-pub async fn scan_skills(provider: String) -> Result<ScanResult, String> {
-    let paths = get_skills_paths(&provider);
+pub async fn scan_skills(provider: String, cwd: Option<String>) -> Result<ScanResult, String> {
+    let paths = get_skills_paths(&provider, cwd.as_deref());
     let mut all_skills = Vec::new();
     let mut last_error = None;
 
     for dir in paths {
-        match scan_directory(&dir) {
+        match scan_directory(&dir, &provider) {
             Ok(skills) => all_skills.extend(skills),
             Err(e) => {
                 last_error = Some(e.to_string());
@@ -240,12 +221,12 @@ pub async fn scan_skills(provider: String) -> Result<ScanResult, String> {
 }
 
 #[tauri::command]
-pub async fn scan_all_skills() -> Result<Vec<ScanResult>, String> {
+pub async fn scan_all_skills(cwd: Option<String>) -> Result<Vec<ScanResult>, String> {
     let providers = vec!["opencode", "codex", "claude", "custom"];
     let mut results = Vec::new();
 
     for provider in providers {
-        match scan_skills(provider.to_string()).await {
+        match scan_skills(provider.to_string(), cwd.clone()).await {
             Ok(result) => results.push(result),
             Err(e) => results.push(ScanResult {
                 provider: provider.to_string(),
@@ -262,4 +243,50 @@ pub async fn scan_all_skills() -> Result<Vec<ScanResult>, String> {
 #[tauri::command]
 pub async fn get_skill_content(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_skill_dir() -> PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after Unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("panes-skills-test-{suffix}"))
+    }
+
+    #[test]
+    fn scan_directory_preserves_requested_provider_metadata() {
+        let root = temp_skill_dir();
+        let skill_dir = root.join("my-skill");
+        fs::create_dir_all(&skill_dir).expect("test skill directory should be created");
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: My Skill\ndescription: Test skill\nlicense: MIT\n---\nBody",
+        )
+        .expect("test skill should be written");
+
+        let skills = scan_directory(&root, "custom").expect("skill directory should scan");
+
+        fs::remove_dir_all(&root).ok();
+
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].id, "custom:my-skill");
+        assert_eq!(skills[0].provider, "custom");
+        assert_eq!(skills[0].category, "custom");
+        assert!(!skills[0].is_native);
+        assert_eq!(skills[0].license.as_deref(), Some("MIT"));
+    }
+
+    #[test]
+    fn get_skills_paths_uses_workspace_root_for_project_paths() {
+        let paths = get_skills_paths("codex", Some("/workspace/project"));
+
+        assert_eq!(paths[0], PathBuf::from("/workspace/project/.codex/skills"));
+        assert_eq!(paths[1], PathBuf::from("/workspace/project/.claude/skills"));
+    }
 }

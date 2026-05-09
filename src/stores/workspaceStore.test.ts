@@ -111,7 +111,10 @@ describe("workspaceStore.removeWorkspace", () => {
     await useWorkspaceStore.getState().removeWorkspace(workspaceA.id);
 
     expect(mockIpc.archiveWorkspace).toHaveBeenCalledWith(workspaceA.id);
-    expect(mockTerminalStoreState.prepareWorkspaceActivation).toHaveBeenCalledWith(workspaceB.id);
+    expect(mockTerminalStoreState.prepareWorkspaceActivation).toHaveBeenCalledWith(
+      workspaceB.id,
+      workspaceB.rootPath,
+    );
     expect(mockIpc.getRepos).toHaveBeenCalledWith(workspaceB.id);
     expect(useWorkspaceStore.getState().activeWorkspaceId).toBe(workspaceB.id);
     expect(useWorkspaceStore.getState().repos).toEqual([repoB]);
@@ -301,6 +304,7 @@ describe("workspaceStore.loadWorkspaces", () => {
 
     expect(mockTerminalStoreState.prepareWorkspaceActivation).toHaveBeenCalledWith(
       validWorkspace.id,
+      validWorkspace.rootPath,
     );
     expect(mockIpc.getRepos).toHaveBeenCalledWith(validWorkspace.id);
     expect(useWorkspaceStore.getState().activeWorkspaceId).toBe(validWorkspace.id);

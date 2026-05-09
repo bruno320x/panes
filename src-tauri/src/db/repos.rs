@@ -314,28 +314,17 @@ fn find_repo_id_by_workspace_and_path(
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs,
-        sync::{Arc, Mutex},
-    };
+    use std::fs;
 
     use uuid::Uuid;
 
-    use crate::db::{threads, workspaces, ConnectionPool, SQLITE_POOL_MAX_IDLE};
+    use crate::db::{threads, workspaces};
 
     use super::*;
 
     fn test_db() -> Database {
         let path = std::env::temp_dir().join(format!("panes-repos-{}.db", Uuid::new_v4()));
-        let db = Database {
-            path,
-            pool: Arc::new(ConnectionPool {
-                idle: Mutex::new(Vec::new()),
-                max_idle: SQLITE_POOL_MAX_IDLE,
-            }),
-        };
-        db.run_migrations().expect("failed to run test migrations");
-        db
+        Database::open(path).expect("failed to open test database")
     }
 
     #[test]

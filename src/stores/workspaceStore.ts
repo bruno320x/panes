@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Repo, TrustLevel, Workspace } from "../types";
 import { ipc } from "../lib/ipc";
+import { rememberLastRepo, resolveActiveRepoId } from "../lib/workspaceSelection";
 import { useGitStore } from "./gitStore";
 import { useTerminalStore } from "./terminalStore";
 
@@ -34,10 +35,7 @@ interface WorkspaceState {
 }
 
 const LAST_WORKSPACE_KEY = "panes:lastActiveWorkspaceId";
-const LAST_REPO_BY_WORKSPACE_KEY = "panes:lastActiveRepoByWorkspace";
 let reposLoadSeq = 0;
-
-type LastRepoByWorkspace = Record<string, string>;
 
 function isTransientLinuxAppImageRoot(rootPath: string): boolean {
   return /^\/(?:var\/tmp|tmp)\/\.mount_[^/]+(?:\/|$)/.test(rootPath);
@@ -64,71 +62,8 @@ function resolveStartupWorkspaceId(
   );
 }
 
-function readLastRepoByWorkspace(): LastRepoByWorkspace {
-  try {
-    const raw = localStorage.getItem(LAST_REPO_BY_WORKSPACE_KEY);
-    if (!raw) {
-      return {};
-    }
-
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
-    }
-
-    const next: LastRepoByWorkspace = {};
-    for (const [workspaceId, repoId] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof workspaceId !== "string" || typeof repoId !== "string") {
-        continue;
-      }
-      const normalizedRepoId = repoId.trim();
-      if (!normalizedRepoId) {
-        continue;
-      }
-      next[workspaceId] = normalizedRepoId;
-    }
-    return next;
-  } catch {
-    return {};
-  }
-}
-
-function writeLastRepoByWorkspace(next: LastRepoByWorkspace): void {
-  try {
-    localStorage.setItem(LAST_REPO_BY_WORKSPACE_KEY, JSON.stringify(next));
-  } catch {
-    // localStorage unavailable or full; ignore persistence failure.
-  }
-}
-
-function rememberLastRepo(workspaceId: string, repoId: string): void {
-  const current = readLastRepoByWorkspace();
-  if (current[workspaceId] === repoId) {
-    return;
-  }
-  current[workspaceId] = repoId;
-  writeLastRepoByWorkspace(current);
-}
-
-export function resolveActiveRepoId(
-  workspaceId: string,
-  repos: Repo[],
-  currentActiveRepoId: string | null,
-): string | null {
-  if (!repos.length) {
-    return null;
-  }
-
-  if (currentActiveRepoId && repos.some((repo) => repo.id === currentActiveRepoId)) {
-    return currentActiveRepoId;
-  }
-
-  const persisted = readLastRepoByWorkspace()[workspaceId];
-  if (persisted && repos.some((repo) => repo.id === persisted && repo.isActive)) {
-    return persisted;
-  }
-
-  return repos.find((repo) => repo.isActive)?.id ?? repos[0]?.id ?? null;
+async function prepareTerminalWorkspaceActivation(workspaceId: string, workspaceRootPath?: string | null): Promise<void> {
+  await useTerminalStore.getState().prepareWorkspaceActivation(workspaceId, workspaceRootPath);
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -147,7 +82,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const activeWorkspaceId = resolveStartupWorkspaceId(workspaces, savedId);
       set({ workspaces, activeWorkspaceId, loading: false });
       if (activeWorkspaceId) {
-        await useTerminalStore.getState().prepareWorkspaceActivation(activeWorkspaceId);
+        const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
+        await prepareTerminalWorkspaceActivation(activeWorkspaceId, activeWorkspace?.rootPath);
         useGitStore.getState().loadDraftsForWorkspace(activeWorkspaceId);
         await get().loadRepos(activeWorkspaceId);
       }
@@ -176,7 +112,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         activeWorkspaceId: workspace.id,
         loading: false,
       }));
-      await useTerminalStore.getState().prepareWorkspaceActivation(workspace.id);
+      await prepareTerminalWorkspaceActivation(workspace.id, workspace.rootPath);
       await get().loadRepos(workspace.id);
       return workspace;
     } catch (error) {
@@ -210,7 +146,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
       if (nextActive) {
         if (wasActiveWorkspace) {
-          await useTerminalStore.getState().prepareWorkspaceActivation(nextActive);
+          const nextWorkspace = remaining.find((workspace) => workspace.id === nextActive);
+          await prepareTerminalWorkspaceActivation(nextActive, nextWorkspace?.rootPath);
         }
         await get().loadRepos(nextActive);
       } else {
@@ -241,7 +178,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       });
 
       if (!get().activeWorkspaceId || get().activeWorkspaceId === restored.id) {
-        await useTerminalStore.getState().prepareWorkspaceActivation(restored.id);
+        await prepareTerminalWorkspaceActivation(restored.id, restored.rootPath);
         await get().loadRepos(restored.id);
       }
     } catch (error) {
@@ -291,7 +228,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
     localStorage.setItem(LAST_WORKSPACE_KEY, workspaceId);
     set({ activeWorkspaceId: workspaceId, activeRepoId: null, repos: [], error: undefined });
-    await useTerminalStore.getState().prepareWorkspaceActivation(workspaceId);
+    const workspace = get().workspaces.find((item) => item.id === workspaceId);
+    await prepareTerminalWorkspaceActivation(workspaceId, workspace?.rootPath);
     await get().loadRepos(workspaceId);
     useGitStore.getState().loadDraftsForWorkspace(workspaceId);
   },

@@ -573,6 +573,29 @@
     "chatNotificationFallbackComplete": "Resposta pronta",
     "chatNotificationFallbackError": "Resposta falhou"
   },
+  "skillsPanel": {
+    "open": "Abrir painel de skills",
+    "close": "Fechar painel de skills",
+    "searchPlaceholder": "Buscar skills...",
+    "clearSearch": "Limpar busca",
+    "loading": "Carregando skills",
+    "customBadge": "Custom",
+    "enableSkill": "Ativar skill {{name}}",
+    "disableSkill": "Desativar skill {{name}}",
+    "license": "Licença: {{license}}",
+    "empty": {
+      "customTitle": "Nenhuma skill customizada encontrada",
+      "nativeTitle": "Nenhuma skill nativa do {{provider}}",
+      "customDescription": "Adicione um arquivo SKILL.md em .skills/nome-da-skill/ para disponibilizar aqui.",
+      "nativeDescription": "Skills nativas carregam automaticamente quando estão configuradas neste projeto.",
+      "customInstructionsAction": "Mostrar formato da pasta",
+      "customInstructionsToast": "Adicione skills em .skills/nome-da-skill/SKILL.md."
+    },
+    "footer": {
+      "activeProvider": "Skills ativas para {{provider}}",
+      "noProvider": "Selecione um provider para usar skills"
+    }
+  },
   "powerModal": {
     "title": "Gerenciamento de energia",
     "keepAwake": "Manter acordado",

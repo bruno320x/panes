@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { ipc, writeCommandToNewSession } from "../lib/ipc";
 import { t } from "../i18n";
+import { resolveActiveRepoId } from "../lib/workspaceSelection";
 import { toast } from "./toastStore";
 import { useHarnessStore } from "./harnessStore";
-import { resolveActiveRepoId, useWorkspaceStore } from "./workspaceStore";
 import type {
   SplitDirection,
   SplitNode,
@@ -413,6 +413,7 @@ function resolveHydratedNotifications(
 // ── State shape ─────────────────────────────────────────────────────
 
 interface WorkspaceTerminalState {
+  workspaceRootPath?: string | null;
   isOpen: boolean;
   layoutMode: LayoutMode;
   preEditorLayoutMode: LayoutMode;
@@ -436,7 +437,7 @@ interface WorkspaceTerminalState {
 
 interface TerminalState {
   workspaces: Record<string, WorkspaceTerminalState>;
-  prepareWorkspaceActivation: (workspaceId: string) => Promise<void>;
+  prepareWorkspaceActivation: (workspaceId: string, workspaceRootPath?: string | null) => Promise<void>;
   setWorkspaceStartupPresetState: (
     workspaceId: string,
     preset: WorkspaceStartupPreset | null,
@@ -502,6 +503,7 @@ interface TerminalState {
 
 function defaultWorkspaceState(): WorkspaceTerminalState {
   return {
+    workspaceRootPath: null,
     isOpen: false,
     layoutMode: "chat",
     preEditorLayoutMode: "chat",
@@ -690,7 +692,7 @@ async function closeSessionsSequential(workspaceId: string, sessionIds: string[]
 }
 
 function workspaceRootPath(workspaceId: string): string | null {
-  return useWorkspaceStore.getState().workspaces.find((workspace) => workspace.id === workspaceId)?.rootPath ?? null;
+  return useTerminalStore.getState().workspaces[workspaceId]?.workspaceRootPath ?? null;
 }
 
 function resolveSessionStartupCwd(
@@ -751,7 +753,7 @@ function buildStartupWorktreePath(
 export const useTerminalStore = create<TerminalState>((set, get) => ({
   workspaces: {},
 
-  prepareWorkspaceActivation: async (workspaceId) => {
+  prepareWorkspaceActivation: async (workspaceId, workspaceRootPath) => {
     const fallbackMode = readStoredLayoutMode(workspaceId);
     try {
       const preset = await ipc.getWorkspaceStartupPreset(workspaceId);
@@ -762,6 +764,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         const hasLiveSessions = current.sessions.length > 0;
         return {
           workspaces: mergeWorkspaceState(state.workspaces, workspaceId, {
+            workspaceRootPath:
+              workspaceRootPath ?? current.workspaceRootPath,
             startupPreset: preset,
             pendingStartupPreset: hasLiveSessions
               ? current.pendingStartupPreset
@@ -784,6 +788,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       toast.warning(t("app:terminal.toasts.invalidStartupPresetIgnored"));
       set((state) => ({
         workspaces: mergeWorkspaceState(state.workspaces, workspaceId, {
+          workspaceRootPath:
+            workspaceRootPath ?? state.workspaces[workspaceId]?.workspaceRootPath ?? null,
           startupPreset: null,
           pendingStartupPreset: null,
           layoutMode: fallbackMode,
@@ -985,16 +991,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
 
     const warnings: string[] = [];
     const launchRequests: Array<{ sessionId: string; harnessId: string; groupName: string }> = [];
-    const workspaceStore = useWorkspaceStore.getState();
-    const currentActiveRepoId =
-      workspaceStore.activeWorkspaceId === workspaceId
-        ? workspaceStore.activeRepoId
-        : null;
-    const repoList =
-      workspaceStore.activeWorkspaceId === workspaceId && workspaceStore.repos.length > 0
-        ? workspaceStore.repos
-        : await ipc.getRepos(workspaceId);
-    const activeRepoId = resolveActiveRepoId(workspaceId, repoList, currentActiveRepoId);
+    const repoList = await ipc.getRepos(workspaceId);
+    const activeRepoId = resolveActiveRepoId(workspaceId, repoList, null);
     const activeRepo = repoList.find((repo) => repo.id === activeRepoId) ?? null;
     const knownHarnesses = new Map(
       useHarnessStore
@@ -1233,10 +1231,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   },
 
   serializeWorkspaceRuntimeAsStartupPreset: (workspaceId) => {
-    if (useWorkspaceStore.getState().activeWorkspaceId !== workspaceId) {
-      return null;
-    }
-
     const workspace = get().workspaces[workspaceId] ?? defaultWorkspaceState();
     const workspaceRoot = workspaceRootPath(workspaceId);
     if (!workspaceRoot) {

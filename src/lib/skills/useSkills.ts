@@ -38,7 +38,7 @@ interface UseSkillsReturn {
   error: string | null;
 }
 
-export function useSkills(initialTab?: SkillCategory): UseSkillsReturn {
+export function useSkills(initialTab?: SkillCategory, workspaceRoot?: string | null): UseSkillsReturn {
   const [allSkills, setAllSkills] = useState<Skill[]>([]);
   const [selectedTab, setSelectedTabState] = useState<SkillCategory>(
     initialTab || skillsService.getLastTab()
@@ -57,7 +57,7 @@ export function useSkills(initialTab?: SkillCategory): UseSkillsReturn {
     setError(null);
     try {
       // Carregar skills via skillsService (que usa invoke do Tauri)
-      const results = await skillsService.scanAllProviders();
+      const results = await skillsService.scanAllProviders(workspaceRoot);
       const skills = results.flatMap(r => r.skills);
       setAllSkills(skills);
     } catch (err) {
@@ -65,7 +65,7 @@ export function useSkills(initialTab?: SkillCategory): UseSkillsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [workspaceRoot]);
 
   useEffect(() => {
     loadSkills();

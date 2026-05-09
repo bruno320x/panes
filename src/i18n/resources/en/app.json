@@ -573,6 +573,29 @@
     "chatNotificationFallbackComplete": "Reply ready",
     "chatNotificationFallbackError": "Reply failed"
   },
+  "skillsPanel": {
+    "open": "Open skills panel",
+    "close": "Close skills panel",
+    "searchPlaceholder": "Search skills...",
+    "clearSearch": "Clear search",
+    "loading": "Loading skills",
+    "customBadge": "Custom",
+    "enableSkill": "Enable skill {{name}}",
+    "disableSkill": "Disable skill {{name}}",
+    "license": "License: {{license}}",
+    "empty": {
+      "customTitle": "No custom skills found",
+      "nativeTitle": "No native {{provider}} skills",
+      "customDescription": "Add a SKILL.md file under .skills/name-of-skill/ to make it available here.",
+      "nativeDescription": "Native skills load automatically when they are configured in this project.",
+      "customInstructionsAction": "Show folder format",
+      "customInstructionsToast": "Add skills in .skills/name-of-skill/SKILL.md."
+    },
+    "footer": {
+      "activeProvider": "Skills active for {{provider}}",
+      "noProvider": "Select a provider to use skills"
+    }
+  },
   "powerModal": {
     "title": "Power Management",
     "keepAwake": "Keep Awake",
