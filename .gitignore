@@ -38,3 +38,19 @@ openspec/
 
 # Nested repos
 remotion/
+
+# Graphify output (regenerable cache)
+graphify-out/
+
+# Serena agent state
+.serena/cache/
+.serena/memories/
+
+# SocratiCode local index
+.socraticode/
+
+# Kiro settings
+.kiro/
+
+# VS Code workspace settings
+.vscode/
