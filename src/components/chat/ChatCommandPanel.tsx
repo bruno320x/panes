@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { SlashCommandList } from "./SlashCommandList";
 import { ipc } from "../../lib/ipc";
 import { toast } from "../../stores/toastStore";
 import type {
@@ -189,11 +190,11 @@ export function ChatCommandPanel({
           error={error}
           onConfirm={() => onConfirm(command)}
           onDismiss={onDismiss}
-        />
+/>
       );
     case "skills":
       return (
-        <InfoListPanel
+        <SlashCommandList
           icon={Scissors}
           title={t("slashCommands.panels.skills.title")}
           emptyLabel={t("slashCommands.panels.skills.empty")}
@@ -207,7 +208,7 @@ export function ChatCommandPanel({
       );
     case "agents":
       return (
-        <InfoListPanel
+        <SlashCommandList
           icon={UserCircle}
           title={t("slashCommands.panels.openCodeAgents.title")}
           emptyLabel={t("slashCommands.panels.openCodeAgents.empty")}
@@ -221,7 +222,7 @@ export function ChatCommandPanel({
       );
     case "commands":
       return (
-        <InfoListPanel
+        <SlashCommandList
           icon={SquareCode}
           title={t("slashCommands.panels.openCodeCommands.title")}
           emptyLabel={t("slashCommands.panels.openCodeCommands.empty")}
@@ -248,7 +249,7 @@ export function ChatCommandPanel({
       );
     case "mcp":
       return (
-        <InfoListPanel
+        <SlashCommandList
           icon={Server}
           title={t("slashCommands.panels.mcp.title")}
           emptyLabel={t("slashCommands.panels.mcp.empty")}
@@ -270,7 +271,7 @@ export function ChatCommandPanel({
       );
     case "experimental":
       return (
-        <InfoListPanel
+        <SlashCommandList
           icon={FlaskConical}
           title={t("slashCommands.panels.experimental.title")}
           emptyLabel={t("slashCommands.panels.experimental.empty")}
@@ -1499,67 +1500,4 @@ function ReviewPanel({
   );
 }
 
-/* ── Info list panel (skills / mcp / experimental) ── */
 
-function InfoListPanel({
-  icon: Icon,
-  title,
-  emptyLabel,
-  items,
-  onDismiss,
-}: {
-  icon: typeof Scissors;
-  title: string;
-  emptyLabel: string;
-  items: { name: string; detail?: string; enabled?: boolean; badge?: string }[];
-  onDismiss: () => void;
-}) {
-  const { t } = useTranslation("chat");
-  return (
-    <div className="chat-command-panel">
-      <div className="chat-command-panel-header">
-        <div className="chat-command-panel-title">
-          <Icon size={12} />
-          <span>{title}</span>
-        </div>
-        <button
-          type="button"
-          className="chat-command-panel-close"
-          onClick={onDismiss}
-        >
-          <X size={12} />
-        </button>
-      </div>
-      {items.length === 0 ? (
-        <div className="chat-command-panel-desc">{emptyLabel}</div>
-      ) : (
-        <div className="chat-command-panel-info-list">
-          {items.map((item) => (
-            <div key={item.name} className="chat-command-panel-info-item">
-              <span className="chat-command-panel-info-name">
-                {item.name}
-              </span>
-              {item.detail && (
-                <span className="chat-command-panel-info-detail">
-                  {item.detail}
-                </span>
-              )}
-              {item.enabled !== undefined && (
-                <span
-                  className={`chat-command-panel-info-badge ${item.enabled ? "chat-command-panel-info-badge-on" : "chat-command-panel-info-badge-off"}`}
-                >
-                  {item.enabled ? t("slashCommands.panels.info.badgeOn") : t("slashCommands.panels.info.badgeOff")}
-                </span>
-              )}
-              {item.badge && (
-                <span className="chat-command-panel-info-badge">
-                  {item.badge}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}

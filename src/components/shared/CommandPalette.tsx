@@ -62,6 +62,9 @@ import {
   showWorkspaceSurface,
 } from "../../lib/workspacePaneNavigation";
 import { useUiStore } from "../../stores/uiStore";
+import { STYLES } from "./CommandPaletteStyles";
+import { CommandPaletteInput } from "./CommandPaletteInput";
+import { CommandPaletteList } from "./CommandPaletteList";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
 import { useThreadStore } from "../../stores/threadStore";
 import { useChatStore } from "../../stores/chatStore";
@@ -180,7 +183,7 @@ interface CommandEntry {
 /*  Result item union                                                  */
 /* ------------------------------------------------------------------ */
 
-type ResultItem =
+export type ResultItem =
   | { type: "command"; entry: CommandEntry }
   | { type: "message-search"; entry: SearchResult }
   | { type: "file"; entry: FileTreeEntry }
@@ -193,7 +196,7 @@ type ResultItem =
   | { type: "send-message"; query: string }
   | { type: "sub-action"; label: string; description?: string };
 
-interface ResultGroup {
+export interface ResultGroup {
   label: string;
   items: ResultItem[];
 }
@@ -815,203 +818,8 @@ function fileDirName(path: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Inline style constants                                             */
+/*  Styles (moved to CommandPaletteStyles.ts)                           */
 /* ------------------------------------------------------------------ */
-
-const STYLES = {
-  backdrop: {
-    position: "fixed" as const,
-    inset: 0,
-    zIndex: 10001,
-    background: "rgba(0, 0, 0, 0.55)",
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    display: "flex",
-    alignItems: "flex-start" as const,
-    justifyContent: "center" as const,
-    padding: "min(12vh, 120px) 20px 20px",
-  },
-  card: {
-    width: "min(640px, calc(100% - 40px))",
-    maxHeight: "min(520px, 72vh)",
-    overflow: "hidden" as const,
-    display: "grid",
-    gridTemplateRows: "auto 1fr auto",
-    borderRadius: "var(--radius-lg)",
-    background: "rgba(14, 14, 16, 0.95)",
-    boxShadow:
-      "0 0 0 1px rgba(255, 255, 255, 0.08), " +
-      "0 24px 68px rgba(0, 0, 0, 0.55)",
-    animation: "slide-up 180ms cubic-bezier(0.16, 1, 0.3, 1) both",
-  },
-  inputRow: {
-    display: "flex",
-    alignItems: "center" as const,
-    gap: 10,
-    padding: "14px 16px",
-    borderBottom: "1px solid var(--border)",
-  },
-  inputIcon: {
-    display: "flex",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    color: "var(--text-2)",
-    flexShrink: 0,
-  },
-  modeBadge: {
-    display: "inline-flex",
-    alignItems: "center" as const,
-    padding: "2px 8px",
-    background: "var(--accent-dim)",
-    color: "var(--accent)",
-    border: "1px solid var(--border-accent)",
-    borderRadius: "var(--radius-sm)",
-    fontSize: 11,
-    fontWeight: 600,
-    fontFamily: "monospace",
-    flexShrink: 0,
-    letterSpacing: "0.02em",
-  },
-  input: {
-    flex: 1,
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "var(--text-1)",
-    fontSize: 15,
-    fontFamily: "inherit",
-    lineHeight: 1.5,
-    minWidth: 0,
-  },
-  results: {
-    overflowY: "auto" as const,
-    padding: "6px 0",
-  },
-  groupHeader: {
-    padding: "10px 16px 4px",
-    fontSize: 10.5,
-    fontWeight: 600,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.08em",
-    color: "var(--text-3)",
-    userSelect: "none" as const,
-  },
-  groupDivider: {
-    height: 1,
-    margin: "4px 16px",
-    background: "var(--border)",
-  },
-  item: (active: boolean) => ({
-    display: "grid",
-    gridTemplateColumns: "24px 1fr auto",
-    alignItems: "center" as const,
-    gap: 8,
-    padding: "0 12px",
-    margin: "1px 6px",
-    minHeight: 40,
-    width: "calc(100% - 12px)",
-    border: "none",
-    borderRadius: "var(--radius-sm)",
-    background: active ? "rgba(255, 255, 255, 0.07)" : "transparent",
-    cursor: "pointer",
-    textAlign: "left" as const,
-    fontFamily: "inherit",
-    transition: "background 80ms ease-out",
-  }),
-  itemIcon: (active: boolean) => ({
-    display: "flex",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    color: active ? "var(--accent)" : "var(--text-3)",
-    transition: "color 80ms ease-out",
-  }),
-  itemLabel: {
-    fontSize: 13,
-    color: "var(--text-1)",
-    overflow: "hidden" as const,
-    textOverflow: "ellipsis" as const,
-    whiteSpace: "nowrap" as const,
-  },
-  itemDescription: {
-    fontSize: 11.5,
-    color: "var(--text-3)",
-    overflow: "hidden" as const,
-    textOverflow: "ellipsis" as const,
-    whiteSpace: "nowrap" as const,
-  },
-  itemShortcut: {
-    fontSize: 10.5,
-    color: "var(--text-3)",
-    padding: "2px 6px",
-    background: "var(--bg-4)",
-    borderRadius: 4,
-    fontFamily: "monospace",
-    flexShrink: 0,
-    letterSpacing: "0.02em",
-  },
-  inlineBadge: {
-    fontSize: 10,
-    padding: "1px 6px",
-    borderRadius: 4,
-    background: "var(--bg-4)",
-    border: "1px solid var(--border)",
-    color: "var(--text-3)",
-    flexShrink: 0,
-  },
-  chip: (active: boolean) => ({
-    display: "inline-flex",
-    alignItems: "center" as const,
-    gap: 4,
-    padding: "3px 10px",
-    borderRadius: 20,
-    fontSize: 11,
-    fontWeight: 500,
-    cursor: "pointer",
-    border: "none",
-    fontFamily: "inherit",
-    background: active ? "var(--accent-dim)" : "var(--bg-4)",
-    color: active ? "var(--accent)" : "var(--text-3)",
-    transition: "background 100ms ease-out, color 100ms ease-out",
-  }),
-  chipBar: {
-    display: "flex" as const,
-    gap: 6,
-    padding: "8px 16px",
-    borderBottom: "1px solid var(--border)",
-  },
-  footer: {
-    display: "flex",
-    alignItems: "center" as const,
-    flexWrap: "wrap" as const,
-    gap: "6px 16px",
-    padding: "8px 16px",
-    borderTop: "1px solid var(--border)",
-    fontSize: 11,
-    color: "var(--text-3)",
-    userSelect: "none" as const,
-  },
-  footerKbd: {
-    display: "inline-flex" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    fontFamily: "monospace",
-    fontSize: 10,
-    lineHeight: 1,
-    padding: "2px 5px",
-    minWidth: 18,
-    borderRadius: 4,
-    background: "var(--bg-4)",
-    border: "1px solid var(--border)",
-    color: "var(--text-2)",
-    marginRight: 3,
-  },
-  emptyState: {
-    padding: "40px 16px",
-    textAlign: "center" as const,
-    color: "var(--text-3)",
-    fontSize: 12.5,
-  },
-};
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -2348,233 +2156,7 @@ export function CommandPalette({ open, onClose }: Props) {
     return null;
   };
 
-  function renderItem(item: ResultItem, index: number): ReactNode {
-    const active = index === activeIndex;
-    const key = `${item.type}-${index}`;
-
-    switch (item.type) {
-      case "command": {
-        const Icon = item.entry.icon;
-        const showRepoBadge = item.entry.group === "git" && activeGitRepos.length > 1 && activeRepo;
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><Icon size={16} /></span>
-            <span style={{ ...STYLES.itemLabel, display: "flex", alignItems: "center", gap: 6 }}>
-              {item.entry.label}
-              {showRepoBadge && (
-                <span style={STYLES.inlineBadge}>{activeRepo.name}</span>
-              )}
-            </span>
-            {item.entry.shortcut && <span style={STYLES.itemShortcut}>{item.entry.shortcut}</span>}
-            {(item.entry.id === "switch-thread" || item.entry.id === "switch-workspace") && (
-              <ChevronRight size={14} style={{ color: "var(--text-3)" }} />
-            )}
-          </button>
-        );
-      }
-      case "message-search": {
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><Search size={16} /></span>
-            <span style={{ overflow: "hidden" }}>
-              <span style={{ ...STYLES.itemLabel, display: "block" }}>
-                {item.entry.threadTitle || t("commandPalette.status.threadFallback")}
-              </span>
-              <span style={STYLES.itemDescription}>
-                {item.entry.workspaceName} · {item.entry.snippet}
-              </span>
-            </span>
-            <span />
-          </button>
-        );
-      }
-      case "file": {
-        const base = fileBaseName(item.entry.path);
-        const dir = fileDirName(item.entry.path);
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><File size={16} /></span>
-            <span style={{ display: "flex", alignItems: "baseline", gap: 6, overflow: "hidden" }}>
-              <span style={{ ...STYLES.itemLabel, fontWeight: 500, flexShrink: 0 }}>{base}</span>
-              {dir && <span style={STYLES.itemDescription}>{dir}</span>}
-            </span>
-            <span />
-          </button>
-        );
-      }
-      case "thread": {
-        const workspaceName =
-          workspaceNameById.get(item.entry.workspaceId) ?? t("commandPalette.status.workspaceFallback");
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><MessageSquare size={16} /></span>
-            <span style={{ overflow: "hidden" }}>
-              <span style={{ ...STYLES.itemLabel, display: "block" }}>{item.entry.title}</span>
-              <span style={STYLES.itemDescription}>{workspaceName}</span>
-            </span>
-            <span style={STYLES.itemDescription}>
-              {formatRelativeTime(item.entry.lastActivityAt, i18n.language, {
-                style: "short-with-suffix",
-              })}
-            </span>
-          </button>
-        );
-      }
-      case "workspace": {
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><FolderOpen size={16} /></span>
-            <span style={STYLES.itemLabel}>{item.entry.name}</span>
-            <span style={STYLES.itemDescription}>{item.entry.rootPath}</span>
-          </button>
-        );
-      }
-      case "harness": {
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><Play size={16} /></span>
-            <span style={STYLES.itemLabel}>{item.entry.name}</span>
-            {item.entry.version && <span style={STYLES.itemDescription}>v{item.entry.version}</span>}
-          </button>
-        );
-      }
-      case "branch": {
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><GitBranchIcon size={16} /></span>
-            <span style={STYLES.itemLabel}>
-              {item.entry.name}
-              {item.entry.isCurrent && <span style={{ ...STYLES.inlineBadge, background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid var(--border-accent)", marginLeft: 4 }}>{t("commandPalette.status.current")}</span>}
-              {item.entry.isRemote && <span style={{ ...STYLES.inlineBadge, marginLeft: 4 }}>{t("commandPalette.status.remote")}</span>}
-            </span>
-            <span />
-          </button>
-        );
-      }
-      case "stash": {
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><Layers size={16} /></span>
-            <span style={{ ...STYLES.itemLabel, display: "flex", alignItems: "center", gap: 6 }}>
-              {item.entry.name}
-              {item.entry.branchHint && (
-                <span style={STYLES.inlineBadge}>{item.entry.branchHint}</span>
-              )}
-            </span>
-            <span />
-          </button>
-        );
-      }
-      case "repo": {
-        const isCurrent = item.entry.id === activeRepo?.id;
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><FolderGit2 size={16} /></span>
-            <span style={{ overflow: "hidden" }}>
-              <span style={{ ...STYLES.itemLabel, display: "flex", alignItems: "center", gap: 6 }}>
-                {item.entry.name}
-                {isCurrent && (
-                  <span style={{ ...STYLES.inlineBadge, background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid var(--border-accent)" }}>{t("commandPalette.status.current")}</span>
-                )}
-              </span>
-              <span style={STYLES.itemDescription}>{item.entry.path}</span>
-            </span>
-            <span />
-          </button>
-        );
-      }
-      case "send-message": {
-        return (
-          <button
-            key={key}
-            ref={active ? activeItemRef : undefined}
-            style={STYLES.item(active)}
-            onMouseEnter={() => setActiveIndex(index)}
-            onClick={() => void executeItem(item)}
-          >
-            <span style={STYLES.itemIcon(active)}><Send size={16} /></span>
-            <span style={{ overflow: "hidden" }}>
-              <span style={STYLES.itemLabel}>
-                {t("commandPalette.sendMessage.sendTo", {
-                  name: activeThread?.title ?? t("commandPalette.status.chatFallback"),
-                })}
-              </span>
-            </span>
-            <span style={STYLES.itemShortcut}>Enter</span>
-          </button>
-        );
-      }
-      case "sub-action": {
-        return (
-          <div
-            key={key}
-            ref={active ? (activeItemRef as React.Ref<HTMLDivElement>) : undefined}
-            style={{ ...STYLES.item(false), cursor: "default", color: "var(--text-3)" }}
-          >
-            <span />
-            <span style={{ ...STYLES.itemLabel, color: "var(--text-3)" }}>{item.label}</span>
-            <span />
-          </div>
-        );
-      }
-    }
-  }
-
-  /* ---- Early return ---- */
+/* ---- Early return ---- */
   if (!open) return null;
 
   /* ---- Render ---- */
@@ -2591,81 +2173,38 @@ export function CommandPalette({ open, onClose }: Props) {
         style={STYLES.card}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Input row */}
-        <div style={STYLES.inputRow}>
-          {getModeBadge() || (
-            <span style={STYLES.inputIcon}><Search size={18} /></span>
-          )}
-          <input
-            ref={inputRef}
-            style={STYLES.input}
-            value={getInputValue()}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            placeholder={getPlaceholder()}
-            spellCheck={false}
-            autoComplete="off"
-            aria-label={getPlaceholder()}
-          />
-        </div>
+{/* Input row */}
+        <CommandPaletteInput
+          modeBadge={getModeBadge()}
+          value={getInputValue()}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+          placeholder={getPlaceholder()}
+          inputRef={inputRef}
+        />
 
-        {/* Results */}
-        <div ref={resultsRef} style={STYLES.results}>
-          {mode === "search" && !subFlow && (
-            <div style={STYLES.chipBar}>
-              {(["all", "messages", "files", "threads"] as const).map((scope) => (
-                <button
-                  key={scope}
-                  style={STYLES.chip(searchScope === scope)}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => {
-                    setSearchScope(scope);
-                    setActiveIndex(0);
-                  }}
-                >
-                  {t(`commandPalette.searchScopes.${scope}`)}
-                </button>
-              ))}
-            </div>
-          )}
-          {/* Filter chips — auto mode only */}
-          {mode === "auto" && term.length >= 1 && !subFlow && (
-            <div style={STYLES.chipBar}>
-              <button
-                style={STYLES.chip(showFilesInAuto)}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { setShowFilesInAuto((v) => !v); setActiveIndex(0); }}
-              >
-                <File size={11} /> {t("commandPalette.chips.files")}
-              </button>
-              <button
-                style={STYLES.chip(showThreadsInAuto)}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { setShowThreadsInAuto((v) => !v); setActiveIndex(0); }}
-              >
-                <MessageSquare size={11} /> {t("commandPalette.chips.threads")}
-              </button>
-            </div>
-          )}
-          {flatItems.length === 0 && (
-            <p style={STYLES.emptyState}>
-              {!activeWorkspaceId
-                ? t("commandPalette.status.noActiveWorkspace")
-                : t("commandPalette.empty.noResults")}
-            </p>
-          )}
-          {groups.map((group, gi) => (
-            <div key={gi}>
-              {gi > 0 && group.label && <div style={STYLES.groupDivider} />}
-              {group.label && <div style={STYLES.groupHeader}>{group.label}</div>}
-              {group.items.map((item) => {
-                const node = renderItem(item, flatIndex);
-                flatIndex++;
-                return node;
-              })}
-            </div>
-          ))}
-        </div>
+{/* Results */}
+        <CommandPaletteList
+          groups={groups}
+          flatItems={flatItems}
+          activeIndex={activeIndex}
+          activeItemRef={activeItemRef}
+          onExecuteItem={executeItem}
+          onSetActiveIndex={setActiveIndex}
+          mode={mode}
+          searchScope={searchScope}
+          showFilesInAuto={showFilesInAuto}
+          showThreadsInAuto={showThreadsInAuto}
+          onToggleFilesInAuto={() => { setShowFilesInAuto((v) => !v); setActiveIndex(0); }}
+          onToggleThreadsInAuto={() => { setShowThreadsInAuto((v) => !v); setActiveIndex(0); }}
+          workspaceNameById={workspaceNameById}
+          activeThreadTitle={activeThread?.title}
+          activeRepo={activeRepo}
+          activeGitReposCount={activeGitRepos.length}
+          i18nLanguage={i18n.language}
+          activeWorkspaceId={activeWorkspaceId}
+          term={term}
+        />
 
         {/* Footer */}
         <div style={STYLES.footer}>

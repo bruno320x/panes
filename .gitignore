@@ -36,5 +36,8 @@ openspec/
 .github/prompts/
 .github/skills/
 
+# Graphify (codebase analysis output - large AST cache files)
+graphify-out/
+
 # Nested repos
 remotion/

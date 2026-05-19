@@ -19,6 +19,9 @@ interface ModelPickerProps {
   onEngineModelChange: (engineId: string, modelId: string) => void;
   onEffortChange: (effort: string) => void;
   disabled?: boolean;
+  /** Optional: make ModelPicker a controlled component */
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
 /* ── Helpers ── */

@@ -7,6 +7,7 @@ import { useWorkspaceStore } from "../../stores/workspaceStore";
 import { toast } from "../../stores/toastStore";
 import { handleDragDoubleClick, handleDragMouseDown } from "../../lib/windowDrag";
 import { isLinuxDesktop, isMacDesktop } from "../../lib/windowActions";
+import { TerminalTabsBar } from "./TerminalTabsBar";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { getHarnessIcon } from "../shared/HarnessLogos";
 import { copyTextToClipboard, readTextFromClipboard } from "../../lib/clipboard";
@@ -4049,187 +4050,36 @@ export function TerminalPanel({ workspaceId, embedded = false }: TerminalPanelPr
         !gitPanelDocked ? " terminal-panel-root-compact-tabs" : ""
       }`}
     >
-      <div className="terminal-tabs-bar">
-        <div className="terminal-tabs-list" ref={tabsListRef}>
-          {groups.map((group) => {
-            const isActive = group.id === activeGroupId;
-            const groupSessionIds = collectSessionIds(group.root);
-            const groupNotification = groupSessionIds.reduce<TerminalNotification | null>(
-              (latest, sessionId) => {
-                const notification = notificationsBySessionId[sessionId] ?? null;
-                if (!notification) {
-                  return latest;
-                }
-                if (!latest || notification.createdAt > latest.createdAt) {
-                  return notification;
-                }
-                return latest;
-              },
-              null,
-            );
-            const displayHarness = getGroupDisplayHarness(group);
-            const groupWorktrees = getGroupWorktrees(workspaceId, group.id);
-            const groupNotificationPreview = groupNotification
-              ? `${groupNotification.title}: ${groupNotification.body}`
-              : undefined;
-            return (
-              <div
-                key={group.id}
-                role="button"
-                tabIndex={0}
-                className={`terminal-tab${isActive ? " terminal-tab-active" : ""}${draggingGroupId === group.id ? " terminal-tab-dragging" : ""}`}
-                title={groupNotificationPreview}
-                onClick={() => {
-                  if (suppressClickRef.current) return;
-                  setActiveGroup(workspaceId, group.id);
-                }}
-                onPointerDown={(e) => handleTabPointerDown(e, group.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setTerminalCtxMenu(null);
-                  setCtxMenu({ groupId: group.id, x: e.clientX, y: e.clientY });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    if (suppressClickRef.current) return;
-                    setActiveGroup(workspaceId, group.id);
-                  }
-                }}
-              >
-                {displayHarness.harnessId
-                  ? getHarnessIcon(displayHarness.harnessId, 12)
-                  : <SquareTerminal size={12} />}
-                {renamingGroupId === group.id ? (
-                  <input
-                    ref={renameInputRef}
-                    type="text"
-                    className="terminal-tab-rename-input"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") { e.preventDefault(); commitRename(group.id); }
-                      if (e.key === "Escape") { e.preventDefault(); cancelRename(); }
-                    }}
-                    onBlur={() => commitRename(group.id)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <span
-                    className="terminal-tab-label"
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setRenamingGroupId(group.id);
-                      setRenameValue(group.name);
-                    }}
-                  >
-                    {group.name}
-                  </span>
-                )}
-                {groupWorktrees.length > 0 && (
-                  <span className="terminal-worktree-badge" title={groupWorktrees.map((worktree) => worktree.branch).join(", ")}>
-                    <GitBranchIcon size={10} />
-                  </span>
-                )}
-                {groupNotification && (
-                  <span className="terminal-tab-notification-dot" aria-hidden="true" />
-                )}
-                {groupSessionIds.length > 1 && (
-                  <span className="terminal-tab-badge">{groupSessionIds.length}</span>
-                )}
-                <button
-                  type="button"
-                  className="terminal-tab-close"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    closeGroupFromMenu(group.id);
-                  }}
-                >
-                  <X size={10} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="terminal-tabs-actions">
-          <button
-            ref={newTabBtnRef}
-            type="button"
-            className="terminal-add-btn"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              if (installedHarnesses.length > 0) {
-                setNewTabMenuOpen((v) => !v);
-              } else {
-                spawnNewSession();
-              }
-            }}
-            title={t("terminal.newTerminal")}
-          >
-            <Plus size={13} />
-          </button>
-          {domFocusedSessionId && (
-            <>
-              <button
-                type="button"
-                className="terminal-add-btn"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => handleSplit("vertical")}
-                title={t("terminal.splitRight")}
-              >
-                <Columns2 size={13} />
-              </button>
-              <button
-                type="button"
-                className="terminal-add-btn"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => handleSplit("horizontal")}
-                title={t("terminal.splitDown")}
-              >
-                <Rows2 size={13} />
-              </button>
-              {(() => {
-                const activeGroup = groups.find((g) => g.id === activeGroupId);
-                const hasManyPanes = activeGroup && collectSessionIds(activeGroup.root).length > 1;
-                if (!hasManyPanes) return null;
-                const isBroadcasting = workspaceState?.broadcastGroupId === activeGroupId;
-                return (
-                  <button
-                    type="button"
-                    className={`terminal-add-btn${isBroadcasting ? " terminal-broadcast-btn-active" : ""}`}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      if (activeGroupId) {
-                        useTerminalStore.getState().toggleBroadcast(workspaceId, activeGroupId);
-                      }
-                    }}
-                    title={
-                      isBroadcasting
-                        ? t("terminal.broadcastTitleOn")
-                        : t("terminal.broadcastTitleOff")
-                    }
-                  >
-                    <Radio size={13} />
-                  </button>
-                );
-              })()}
-              {SHOW_TERMINAL_DIAGNOSTICS_UI && (
-                <button
-                  type="button"
-                  className="terminal-add-btn"
-                  onClick={() => void copyRendererDiagnostics()}
-                  title={t("terminal.copyRendererDiagnostics")}
-                >
-                  <Copy size={13} />
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
+      <TerminalTabsBar
+        workspaceId={workspaceId}
+        groups={groups}
+        activeGroupId={activeGroupId}
+        sessions={sessions}
+        notificationsBySessionId={notificationsBySessionId}
+        draggingGroupId={draggingGroupId}
+        domFocusedSessionId={domFocusedSessionId}
+        installedHarnesses={installedHarnesses}
+        repos={activeRepos}
+        getGroupWorktrees={getGroupWorktrees}
+        setActiveGroup={setActiveGroup}
+        closeGroupFromMenu={closeGroupFromMenu}
+        startRenameFromMenu={startRenameFromMenu}
+        cancelRename={cancelRename}
+        commitRename={commitRename}
+        setCtxMenu={setCtxMenu}
+        setTerminalCtxMenu={setTerminalCtxMenu}
+        spawnNewSession={spawnNewSession}
+        handleSplit={handleSplit}
+        copyRendererDiagnostics={copyRendererDiagnostics}
+        installedHarnessCount={installedHarnesses.length}
+        onNewTabMenuOpen={setNewTabMenuOpen}
+        renameInputRef={renameInputRef}
+        renamingGroupId={renamingGroupId}
+        renameValue={renameValue}
+        setRenamingGroupId={setRenamingGroupId}
+        setRenameValue={setRenameValue}
+        suppressClickRef={suppressClickRef}
+      />
       <div className="terminal-body">
         {workspaceState?.broadcastGroupId === activeGroupId && workspaceState?.broadcastGroupId != null && (
           <div className="terminal-broadcast-banner">
